@@ -4,6 +4,7 @@ import sqlite3
 from collections.abc import Callable
 from typing import Any
 
+from alloccontext.ingest.exchange.coinbase_adapter import refresh_coinbase_exchange
 from alloccontext.ingest.exchange.kraken_adapter import refresh_kraken_exchange
 from alloccontext.ingest.exchange.types import ExchangeId
 
@@ -11,6 +12,7 @@ ExchangeRefreshFn = Callable[[sqlite3.Connection, Any], dict[str, Any]]
 
 _ADAPTERS: dict[ExchangeId, ExchangeRefreshFn] = {
     "kraken": refresh_kraken_exchange,
+    "coinbase": refresh_coinbase_exchange,
 }
 
 

@@ -7,7 +7,28 @@ def test_exchanges_from_example_config(config) -> None:
     assert config.exchanges.primary == "kraken"
     assert config.exchanges.kraken.enabled is True
     assert config.exchanges.kraken.pairs == ["XBTUSD", "ETHUSD"]
+    assert config.exchanges.coinbase.enabled is False
+    assert config.exchanges.coinbase.pairs == ["BTC-USD", "ETH-USD"]
     assert config.kraken.pairs == config.exchanges.kraken.pairs
+
+
+def test_coinbase_primary_spot(tmp_path) -> None:
+    cfg_path = tmp_path / "config.yaml"
+    cfg_path.write_text(
+        """
+ingest:
+  sources:
+    coinbase: true
+exchanges:
+  primary: coinbase
+  coinbase:
+    enabled: true
+    pairs: [BTC-USD]
+"""
+    )
+    config = load_config(cfg_path)
+    spot = config.exchanges.primary_spot()
+    assert spot.pairs == ["BTC-USD"]
 
 
 def test_legacy_kraken_block_without_exchanges(tmp_path) -> None:

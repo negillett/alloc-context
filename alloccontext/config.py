@@ -68,10 +68,13 @@ class SpotExchangeConfig:
 class ExchangesConfig:
     primary: str
     kraken: SpotExchangeConfig
+    coinbase: SpotExchangeConfig
 
     def primary_spot(self) -> SpotExchangeConfig:
         if self.primary == "kraken":
             return self.kraken
+        if self.primary == "coinbase":
+            return self.coinbase
         raise ValueError(f"unsupported primary exchange: {self.primary}")
 
 
@@ -225,10 +228,14 @@ def _load_fred_series(catalog_path: Path) -> list[FredSeriesSpec]:
     return specs
 
 
-def _spot_fields(raw: dict[str, Any]) -> dict[str, Any]:
+def _spot_fields(
+    raw: dict[str, Any],
+    *,
+    default_pairs: list[str],
+) -> dict[str, Any]:
     return {
         "ohlc_interval_minutes": int(raw.get("ohlc_interval_minutes") or 1440),
-        "pairs": [str(p) for p in (raw.get("pairs") or ["XBTUSD", "ETHUSD"])],
+        "pairs": [str(p) for p in (raw.get("pairs") or default_pairs)],
         "retry_backoff_seconds": float(raw.get("retry_backoff_seconds") or 2.0),
         "max_retries": int(raw.get("max_retries") or 3),
     }
@@ -252,18 +259,26 @@ def _load_exchanges_config(
     exchanges_raw = raw.get("exchanges") or {}
     if exchanges_raw:
         kr_raw = exchanges_raw.get("kraken") or {}
-        enabled = bool(kr_raw.get("enabled", ingest_sources.get("kraken", True)))
+        kr_enabled = bool(kr_raw.get("enabled", ingest_sources.get("kraken", True)))
+        cb_raw = exchanges_raw.get("coinbase") or {}
+        cb_enabled = bool(cb_raw.get("enabled", ingest_sources.get("coinbase", False)))
         primary = str(exchanges_raw.get("primary") or "kraken")
     else:
         kr_raw = kraken_raw
-        enabled = bool(ingest_sources.get("kraken", True))
+        kr_enabled = bool(ingest_sources.get("kraken", True))
+        cb_raw = {}
+        cb_enabled = bool(ingest_sources.get("coinbase", False))
         primary = "kraken"
 
-    spot = SpotExchangeConfig(
-        enabled=enabled,
-        **_spot_fields(kr_raw),
+    kraken = SpotExchangeConfig(
+        enabled=kr_enabled,
+        **_spot_fields(kr_raw, default_pairs=["XBTUSD", "ETHUSD"]),
     )
-    return ExchangesConfig(primary=primary, kraken=spot)
+    coinbase = SpotExchangeConfig(
+        enabled=cb_enabled,
+        **_spot_fields(cb_raw, default_pairs=["BTC-USD", "ETH-USD"]),
+    )
+    return ExchangesConfig(primary=primary, kraken=kraken, coinbase=coinbase)
 
 
 def _resolve_config_path(path: str | Path | None) -> Path:
