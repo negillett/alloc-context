@@ -18,10 +18,32 @@ SERVICE_TAGS = ("btc", "eth", "rebalance", "allocation", "crypto")
 
 LISTING_DESCRIPTION = (
     "Deterministic BTC/ETH allocation facts for agents: full ContextBundle "
-    "(portfolio, market, sentiment, macro, delta), fused market context, USD "
-    "rebalance move lines, and allocation band drift checks. No LLM — "
-    "structured JSON only."
+    "(portfolio, market, sentiment, macro, regime hints, delta), fused market "
+    "context, USD rebalance move lines, and allocation band drift checks. "
+    "No LLM — structured JSON only."
 )
+
+_ASSET_FILTER_SCHEMA = {
+    "type": "array",
+    "items": {"type": "string", "enum": ["BTC", "ETH", "CASH"]},
+    "description": "Subset market and ETF fields (default BTC and ETH).",
+}
+
+_TARGET_PCT_SCHEMA = {
+    "type": "object",
+    "description": "Target weights keyed by BTC, ETH, CASH.",
+    "properties": {
+        "BTC": {"type": "number"},
+        "ETH": {"type": "number"},
+        "CASH": {"type": "number"},
+    },
+    "required": ["BTC", "ETH", "CASH"],
+}
+
+_BAND_SCHEMA = {
+    "type": "number",
+    "description": "Drift band width (for example 0.15 = 15%).",
+}
 
 _MCP_TOOLS: tuple[dict[str, Any], ...] = (
     {
@@ -47,9 +69,10 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
                         "(requires operator API keys on the host)."
                     ),
                 },
+                "assets": _ASSET_FILTER_SCHEMA,
             },
         },
-        "example": {"scope": "daily", "freshness": "cached"},
+        "example": {"scope": "daily", "freshness": "cached", "assets": ["BTC", "ETH"]},
         "output_example": {
             "scope": "daily",
             "freshness": "cached",
@@ -64,8 +87,9 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
     {
         "tool_name": "get_context_bundle",
         "description": (
-            "Full ContextBundle JSON: portfolio, market, sentiment, macro, and "
-            "delta vs the prior saved snapshot. freshness=cached or live."
+            "Full ContextBundle JSON: portfolio, market, sentiment, macro, regime "
+            "hints, and delta vs the prior saved snapshot. Optional assets, "
+            "target_pct, and band override server config for drift math."
         ),
         "input_schema": {
             "type": "object",
@@ -78,16 +102,27 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
                     "type": "string",
                     "enum": ["cached", "live"],
                 },
+                "assets": _ASSET_FILTER_SCHEMA,
+                "target_pct": _TARGET_PCT_SCHEMA,
+                "band": _BAND_SCHEMA,
             },
         },
-        "example": {"scope": "daily", "freshness": "cached"},
+        "example": {
+            "scope": "daily",
+            "freshness": "cached",
+            "assets": ["BTC", "ETH"],
+            "target_pct": {"BTC": 0.70, "ETH": 0.30, "CASH": 0.0},
+            "band": 0.15,
+        },
         "output_example": {
             "bundle_id": "daily:2026-05-21T12:00:00+00:00",
             "scope": "daily",
+            "assets": ["BTC", "ETH"],
             "portfolio": {"available": True},
             "market": {"available": True},
             "sentiment": {"available": True},
             "macro": {"available": True},
+            "regime": {"available": True, "summary": "Portfolio allocation is within the configured drift band."},
             "delta": {"available": True},
         },
     },
@@ -131,6 +166,7 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
                         "Exchange-specific move wording (default kraken)."
                     ),
                 },
+                "band": _BAND_SCHEMA,
             },
             "required": ["allocation_pct", "target_pct", "nav_usd"],
         },
@@ -139,6 +175,7 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "target_pct": {"BTC": 0.50, "ETH": 0.40, "CASH": 0.10},
             "nav_usd": 10000,
             "exchange": "kraken",
+            "band": 0.15,
         },
         "output_example": {
             "as_of": "2026-05-21T12:00:00+00:00",
@@ -146,6 +183,7 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "exchange": "kraken",
             "moves": [],
             "deltas_usd": {"BTC": 500.0, "ETH": -500.0, "CASH": 0.0},
+            "band_check": {"outside_band": False, "hint": "within_band"},
         },
     },
     {

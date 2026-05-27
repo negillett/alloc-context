@@ -80,12 +80,20 @@ def create_server(
     @mcp.tool(
         name="get_context_bundle",
         description=(
-            "Full ContextBundle JSON: portfolio, market, sentiment, macro, and "
-            "delta vs the prior saved snapshot. freshness=cached uses the local "
-            "ingest DB; freshness=live runs ingest first."
+            "Full ContextBundle JSON: portfolio, market, sentiment, macro, regime "
+            "hints, and delta vs the prior saved snapshot. Optional assets filter "
+            "(default BTC, ETH), target_pct, and band override server config for "
+            "drift math. freshness=cached uses the local ingest DB; freshness=live "
+            "runs ingest first."
         ),
     )
-    def get_context_bundle(scope: str = "daily", freshness: str = "cached") -> dict[str, Any]:
+    def get_context_bundle(
+        scope: str = "daily",
+        freshness: str = "cached",
+        assets: list[str] | None = None,
+        target_pct: dict[str, float] | None = None,
+        band: float | None = None,
+    ) -> dict[str, Any]:
         """Return the full deterministic context bundle for daily or weekly scope."""
         validated_scope = handlers.validate_scope(scope)
         validated_freshness = handlers.validate_freshness(freshness)
@@ -96,6 +104,9 @@ def create_server(
                 config,
                 scope=validated_scope,
                 freshness=validated_freshness,
+                assets=assets,
+                target_pct=target_pct,
+                band=band,
             )
         finally:
             conn.close()
@@ -104,11 +115,16 @@ def create_server(
         name="get_market_context",
         description=(
             "Fused market backdrop: sentiment (Fear & Greed, Kalshi), macro events, "
-            "FRED indicators, ETF flows, and market breadth. freshness=cached uses the "
-            "local ingest DB; freshness=live runs ingest first (requires operator keys)."
+            "FRED indicators, ETF flows, and market breadth. Optional assets filter "
+            "(default BTC, ETH). freshness=cached uses the local ingest DB; "
+            "freshness=live runs ingest first (requires operator keys)."
         ),
     )
-    def get_market_context(scope: str = "daily", freshness: str = "cached") -> dict[str, Any]:
+    def get_market_context(
+        scope: str = "daily",
+        freshness: str = "cached",
+        assets: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Return ContextBundle subset for daily or weekly scope."""
         validated_scope = handlers.validate_scope(scope)
         validated_freshness = handlers.validate_freshness(freshness)
@@ -119,6 +135,7 @@ def create_server(
                 config,
                 scope=validated_scope,
                 freshness=validated_freshness,
+                assets=assets,
             )
         finally:
             conn.close()
@@ -127,8 +144,9 @@ def create_server(
         name="get_rebalance_plan",
         description=(
             "USD deltas and exchange-style move lines to reach a target BTC/ETH/CASH "
-            "split. Pure math — no exchange keys. exchange=kraken|coinbase adjusts "
-            "move wording and product ids."
+            "split. Requires allocation_pct, target_pct, and nav_usd. Optional band "
+            "returns a band_check block alongside the plan. exchange=kraken|coinbase "
+            "adjusts move wording."
         ),
     )
     def get_rebalance_plan(
@@ -136,6 +154,7 @@ def create_server(
         target_pct: dict[str, float],
         nav_usd: float,
         exchange: str = "kraken",
+        band: float | None = None,
     ) -> dict[str, Any]:
         """Compute rebalance plan from current allocation and NAV."""
         return handlers.get_rebalance_plan(
@@ -143,6 +162,7 @@ def create_server(
             target_pct,
             nav_usd,
             exchange=exchange,
+            band=band,
         )
 
     @mcp.tool(
@@ -174,7 +194,9 @@ def create_server(
         name="check_allocation_band",
         description=(
             "Check whether BTC/ETH/CASH allocation is outside a drift band vs "
-            "target and return hint (within_band, consider_rebalance, etc.)."
+            "target_pct and return hint (within_band, consider_rebalance, etc.). "
+            "All three inputs are required — use get_context_bundle with target_pct "
+            "and band when you want cached portfolio drift from server config."
         ),
     )
     def check_allocation_band(
