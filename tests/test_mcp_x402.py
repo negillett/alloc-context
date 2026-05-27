@@ -50,8 +50,10 @@ def test_x402_route_config() -> None:
     )
     routes = build_x402_routes(settings)
     assert f"POST {MCP_HTTP_PATH}" in routes
-    assert routes[f"POST {MCP_HTTP_PATH}"].accepts[0].pay_to == "0xSeller"
-    assert callable(routes[f"POST {MCP_HTTP_PATH}"].accepts[0].price)
+    accepts = routes[f"POST {MCP_HTTP_PATH}"].accepts
+    assert accepts[0].pay_to == "0xSeller"
+    assert all(opt.pay_to == "0xSeller" for opt in accepts)
+    assert all(callable(opt.price) for opt in accepts)
 
 
 def test_build_http_app_without_x402() -> None:

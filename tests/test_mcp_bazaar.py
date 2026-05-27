@@ -87,6 +87,7 @@ def test_llms_txt_and_well_known() -> None:
     assert len(manifest["resources"][0]["tools"]) == len(_EXPECTED_TOOLS)
     assert manifest["payment"]["pricing"]["cached_context_and_math"] == "$0.02"
     assert manifest["payment"]["pricing"]["network"] == "eip155:84532"
+    assert manifest["payment"]["pricing"]["assets"] == ["USDC", "EURC"]
 
 
 def test_build_well_known_x402_honors_network() -> None:

@@ -6,7 +6,10 @@ import json
 import pytest
 
 
-def _payment_required_amount(response) -> int:
+_BASE_SEPOLIA_USDC = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+
+
+def _payment_required_amount(response, *, asset: str | None = None) -> int:
     header = response.headers.get("PAYMENT-REQUIRED") or response.headers.get(
         "payment-required"
     )
@@ -14,7 +17,12 @@ def _payment_required_amount(response) -> int:
     decoded = json.loads(base64.b64decode(header))
     accepts = decoded.get("accepts") or []
     assert accepts, "expected at least one payment option"
-    return int(accepts[0]["amount"])
+    if asset is None:
+        return int(accepts[0]["amount"])
+    for option in accepts:
+        if option.get("asset", "").lower() == asset.lower():
+            return int(option["amount"])
+    raise AssertionError(f"no accept option for asset {asset!r}")
 
 
 @pytest.fixture
@@ -48,7 +56,7 @@ def test_x402_unpaid_cached_tool_call_uses_light_price(x402_client) -> None:
         headers={"Accept": "application/json", "Host": "127.0.0.1:8000"},
     )
     assert response.status_code == 402
-    assert _payment_required_amount(response) == 20_000
+    assert _payment_required_amount(response, asset=_BASE_SEPOLIA_USDC) == 20_000
 
 
 def test_x402_unpaid_live_freshness_uses_heavy_price(x402_client) -> None:
@@ -66,7 +74,7 @@ def test_x402_unpaid_live_freshness_uses_heavy_price(x402_client) -> None:
         headers={"Accept": "application/json", "Host": "127.0.0.1:8000"},
     )
     assert response.status_code == 402
-    assert _payment_required_amount(response) == 50_000
+    assert _payment_required_amount(response, asset=_BASE_SEPOLIA_USDC) == 50_000
 
 
 def test_x402_unpaid_portfolio_tool_uses_heavy_price(x402_client) -> None:
@@ -84,4 +92,4 @@ def test_x402_unpaid_portfolio_tool_uses_heavy_price(x402_client) -> None:
         headers={"Accept": "application/json", "Host": "127.0.0.1:8000"},
     )
     assert response.status_code == 402
-    assert _payment_required_amount(response) == 50_000
+    assert _payment_required_amount(response, asset=_BASE_SEPOLIA_USDC) == 50_000

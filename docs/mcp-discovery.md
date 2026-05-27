@@ -42,7 +42,7 @@ facilitator. Verify alone does not list the service.
 1. Deploy HTTP MCP with `[hosted]` and x402 env vars ([mcp-http.md](mcp-http.md)).
 2. Set `X402_PUBLIC_URL` to your HTTPS origin.
 3. `curl -i -X POST "$X402_PUBLIC_URL/mcp"` → expect **402**.
-4. Complete one paid call with an x402 client (Base mainnet USDC).
+4. Complete one paid call with an x402 client (any enabled Base stable).
 5. Search CDP Bazaar or use the discovery MCP (below).
 
 Run `scripts/x402-production-check.py` on the host after deploy.

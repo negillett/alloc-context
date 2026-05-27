@@ -71,13 +71,15 @@ failing the hourly ingest run. Check `partial`, `optional_errors`, and
 
 ## x402 pricing
 
-Hosted MCP uses **per-call USDC on Base mainnet**:
+Hosted MCP uses **per-call x402 exact on Base mainnet**. Payer chooses a
+USD-pegged stable (default **USDC, EURC**; bridge to Base first):
 
 | Call type | Default price | Env |
 |-----------|---------------|-----|
 | Cached context and math tools | **$0.02** | `X402_PRICE_MCP` |
 | Live portfolio or `freshness=live` | **$0.05** | `X402_PRICE_MCP_HEAVY` |
 
+`X402_ACCEPTED_STABLES` controls which stables appear in 402 `accepts`.
 Setup: [mcp-http.md](mcp-http.md). Discovery: [mcp-discovery.md](mcp-discovery.md).
 
 Bazaar listing title:
