@@ -125,6 +125,47 @@ def test_mcp_dynamic_price_heavy_live_freshness() -> None:
     assert price == "$0.05"
 
 
+def test_request_json_survives_dynamic_price_read() -> None:
+    async def exercise() -> None:
+        body = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": "get_portfolio_state",
+                "arguments": {"exchange": "kraken"},
+            },
+        }
+        price = await _price_for_body(body)
+        assert price == "$0.05"
+
+        import json
+
+        payload = json.dumps(body).encode()
+        scope = {"type": "http", "method": "POST", "path": "/mcp", "headers": []}
+        sent = False
+
+        async def receive():
+            nonlocal sent
+            if not sent:
+                sent = True
+                return {"type": "http.request", "body": payload, "more_body": False}
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        request = Request(scope, receive)
+        resolve = build_mcp_dynamic_price(light_price="$0.02", heavy_price="$0.05")
+        context = HTTPRequestContext(
+            adapter=FastAPIAdapter(request),
+            path="/mcp",
+            method="POST",
+        )
+        await resolve(context)
+        reread = await request.json()
+        assert reread["params"]["name"] == "get_portfolio_state"
+
+    asyncio.run(exercise())
+
+
 def test_x402_heavy_price_env(monkeypatch: pytest.MonkeyPatch) -> None:
     from alloccontext.mcp.x402_config import load_x402_settings
 

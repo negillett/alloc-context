@@ -76,25 +76,27 @@ def filter_delta_market(delta: dict[str, Any], assets: tuple[str, ...]) -> dict[
     if not delta.get("available"):
         return delta
     symbols = _asset_symbols(assets)
+    shifts = [
+        line
+        for line in delta.get("notable_shifts") or []
+        if any(symbol.upper() in line for symbol in symbols)
+        or "Portfolio" in line
+        or "F&G" in line
+    ]
+    result = dict(delta)
+    result["notable_shifts"] = shifts
     market = delta.get("market")
     if not isinstance(market, dict):
-        return delta
+        return result
     filtered_market = {
         key: value
         for key, value in market.items()
         if any(symbol in key for symbol in symbols)
     }
-    shifts = [
-        line
-        for line in delta.get("notable_shifts") or []
-        if any(symbol.upper() in line for symbol in symbols) or "Portfolio" in line or "F&G" in line
-    ]
-    result = dict(delta)
     if filtered_market:
         result["market"] = filtered_market
     else:
         result.pop("market", None)
-    result["notable_shifts"] = shifts
     return result
 
 

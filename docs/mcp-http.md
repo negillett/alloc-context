@@ -76,6 +76,23 @@ from `X402_PAY_TO`).
 | `cached` (default) | Read from SQLite ingest DB |
 | `live` | Run full ingest, then rollup (needs ingest API keys on the host) |
 
+`freshness=live` is billed at the heavy x402 price (`X402_PRICE_MCP_HEAVY`).
+
+## `get_market_context` response shape
+
+Top-level fields returned by the tool (after optional `assets` filtering):
+
+| Field | Meaning |
+|-------|---------|
+| `market` | Spot prices and breadth subset for requested assets |
+| `sentiment` | Fear & Greed and Kalshi blocks |
+| `macro` | Calendar events and FRED indicators |
+| `etf` | BTC/ETH ETF flow subset |
+| `breadth` | Market breadth for requested assets |
+| `assets` | Asset filter applied to this response |
+| `freshness` | `cached` or `live` |
+| `as_of`, `age_seconds` | Staleness metadata |
+
 ## Entry points
 
 | Command | Use |

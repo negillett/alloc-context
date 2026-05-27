@@ -117,7 +117,7 @@ def create_server(
             "Fused market backdrop: sentiment (Fear & Greed, Kalshi), macro events, "
             "FRED indicators, ETF flows, and market breadth. Optional assets filter "
             "(default BTC, ETH). freshness=cached uses the local ingest DB; "
-            "freshness=live runs ingest first (requires operator keys)."
+            "freshness=live runs ingest first (requires ingest API keys on the host)."
         ),
     )
     def get_market_context(

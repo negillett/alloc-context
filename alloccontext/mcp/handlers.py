@@ -123,13 +123,13 @@ def get_context_bundle(
             target_pct=target_pct,
             band=band,
         )
-        bundle["regime"] = build_regime_context(
-            portfolio=bundle["portfolio"],
-            sentiment=bundle.get("sentiment") or {},
-            delta=bundle.get("delta") or {},
-            prior_as_of=bundle.get("prior_as_of"),
-        )
     bundle = apply_assets_filter_to_bundle(bundle, view_assets)
+    bundle["regime"] = build_regime_context(
+        portfolio=bundle.get("portfolio") or {},
+        sentiment=bundle.get("sentiment") or {},
+        delta=bundle.get("delta") or {},
+        prior_as_of=bundle.get("prior_as_of"),
+    )
     if target_pct is not None:
         bundle["target_pct"] = _normalize_pct(target_pct)
     if band is not None:

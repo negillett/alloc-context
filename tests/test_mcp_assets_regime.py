@@ -3,6 +3,8 @@ from __future__ import annotations
 import pytest
 
 from alloccontext.mcp.assets import (
+    apply_assets_filter_to_bundle,
+    filter_delta_market,
     filter_market_assets,
     validate_view_assets,
 )
@@ -79,6 +81,43 @@ def test_get_context_bundle_assets_filter_and_target_override(conn, config) -> N
     assert bundle["band"] == 0.10
     if bundle.get("market", {}).get("available"):
         assert "eth" not in bundle["market"].get("assets", {})
+
+
+def test_filter_delta_market_shifts_without_market_block() -> None:
+    delta = {
+        "available": True,
+        "notable_shifts": [
+            "BTC spot +2.1% since prior snapshot",
+            "ETH spot -0.8% since prior snapshot",
+        ],
+    }
+    filtered = filter_delta_market(delta, ("BTC",))
+    assert filtered["notable_shifts"] == ["BTC spot +2.1% since prior snapshot"]
+
+
+def test_assets_filter_aligns_regime_delta_hints() -> None:
+    bundle = {
+        "portfolio": {"available": False},
+        "sentiment": {"available": False},
+        "delta": {
+            "available": True,
+            "notable_shifts": [
+                "BTC spot +2.1% since prior snapshot",
+                "ETH spot -0.8% since prior snapshot",
+            ],
+        },
+        "prior_as_of": "2026-05-20T12:00:00+00:00",
+    }
+    filtered = apply_assets_filter_to_bundle(bundle, ("BTC",))
+    regime = build_regime_context(
+        portfolio=filtered.get("portfolio") or {},
+        sentiment=filtered.get("sentiment") or {},
+        delta=filtered.get("delta") or {},
+        prior_as_of=filtered.get("prior_as_of"),
+    )
+    shift_text = " ".join(regime["comparison"].get("notable_shifts") or [])
+    assert "BTC" in shift_text
+    assert "ETH" not in shift_text
 
 
 def test_get_rebalance_plan_optional_band_check() -> None:
