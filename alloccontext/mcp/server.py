@@ -104,16 +104,48 @@ def create_server(
         name="get_rebalance_plan",
         description=(
             "USD deltas and exchange-style move lines to reach a target BTC/ETH/CASH "
-            "split. Pure math — no exchange keys."
+            "split. Pure math — no exchange keys. exchange=kraken|coinbase adjusts "
+            "move wording and product ids."
         ),
     )
     def get_rebalance_plan(
         allocation_pct: dict[str, float],
         target_pct: dict[str, float],
         nav_usd: float,
+        exchange: str = "kraken",
     ) -> dict[str, Any]:
         """Compute rebalance plan from current allocation and NAV."""
-        return handlers.get_rebalance_plan(allocation_pct, target_pct, nav_usd)
+        return handlers.get_rebalance_plan(
+            allocation_pct,
+            target_pct,
+            nav_usd,
+            exchange=exchange,
+        )
+
+    @mcp.tool(
+        name="get_portfolio_state",
+        description=(
+            "Tier 2 BYOK: live portfolio NAV, allocation, drift, and band hint from "
+            "read-only exchange credentials passed in the request. Credentials are "
+            "never stored. Supports kraken and coinbase."
+        ),
+    )
+    def get_portfolio_state(
+        exchange: str,
+        api_key: str,
+        api_secret: str,
+        target_pct: dict[str, float] | None = None,
+        band: float | None = None,
+    ) -> dict[str, Any]:
+        """Fetch live portfolio state using caller-supplied read-only API keys."""
+        return handlers.get_portfolio_state(
+            config,
+            exchange=exchange,
+            api_key=api_key,
+            api_secret=api_secret,
+            target_pct=target_pct,
+            band=band,
+        )
 
     @mcp.tool(
         name="check_allocation_band",

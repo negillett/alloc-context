@@ -18,6 +18,7 @@ def test_mcp_tool_specs_cover_tier1_tools() -> None:
     assert names == {
         "get_market_context",
         "get_rebalance_plan",
+        "get_portfolio_state",
         "check_allocation_band",
     }
 
@@ -27,6 +28,7 @@ def test_mcp_tool_bazaar_extensions() -> None:
     assert set(extensions) == {
         "get_market_context",
         "get_rebalance_plan",
+        "get_portfolio_state",
         "check_allocation_band",
     }
     for ext in extensions.values():
@@ -44,6 +46,7 @@ def test_http_route_bazaar_extension_lists_tools() -> None:
     assert schema_props["params"]["properties"]["name"]["enum"] == [
         "get_market_context",
         "get_rebalance_plan",
+        "get_portfolio_state",
         "check_allocation_band",
     ]
 
@@ -82,7 +85,7 @@ def test_llms_txt_and_well_known() -> None:
         pay_to="0xSeller",
     )
     assert manifest["name"] == "AllocContext"
-    assert len(manifest["resources"][0]["tools"]) == 3
+    assert len(manifest["resources"][0]["tools"]) == 4
 
 
 def test_build_x402_resource_server_registers_bazaar(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -93,6 +93,13 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
                     "type": "number",
                     "description": "Portfolio NAV in USD.",
                 },
+                "exchange": {
+                    "type": "string",
+                    "enum": ["kraken", "coinbase"],
+                    "description": (
+                        "Exchange-specific move wording (default kraken)."
+                    ),
+                },
             },
             "required": ["allocation_pct", "target_pct", "nav_usd"],
         },
@@ -100,12 +107,71 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
             "allocation_pct": {"BTC": 0.45, "ETH": 0.45, "CASH": 0.10},
             "target_pct": {"BTC": 0.50, "ETH": 0.40, "CASH": 0.10},
             "nav_usd": 10000,
+            "exchange": "kraken",
         },
         "output_example": {
             "as_of": "2026-05-21T12:00:00+00:00",
             "age_seconds": 0,
+            "exchange": "kraken",
             "moves": [],
             "deltas_usd": {"BTC": 500.0, "ETH": -500.0, "CASH": 0.0},
+        },
+    },
+    {
+        "tool_name": "get_portfolio_state",
+        "description": (
+            "Tier 2 BYOK live portfolio: NAV, BTC/ETH/CASH allocation, drift vs "
+            "target, and band hint. Pass read-only kraken or coinbase credentials "
+            "in the request; never stored server-side."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "exchange": {
+                    "type": "string",
+                    "enum": ["kraken", "coinbase"],
+                    "description": "Spot exchange to query.",
+                },
+                "api_key": {
+                    "type": "string",
+                    "description": "Read-only API key (CDP key name for Coinbase).",
+                },
+                "api_secret": {
+                    "type": "string",
+                    "description": (
+                        "Read-only API secret (Kraken base64 secret or Coinbase EC PEM)."
+                    ),
+                },
+                "target_pct": {
+                    "type": "object",
+                    "description": "Optional target weights; defaults to server config.",
+                    "properties": {
+                        "BTC": {"type": "number"},
+                        "ETH": {"type": "number"},
+                        "CASH": {"type": "number"},
+                    },
+                },
+                "band": {
+                    "type": "number",
+                    "description": "Drift band width (default from server config).",
+                },
+            },
+            "required": ["exchange", "api_key", "api_secret"],
+        },
+        "example": {
+            "exchange": "kraken",
+            "api_key": "YOUR_READ_ONLY_KEY",
+            "api_secret": "YOUR_READ_ONLY_SECRET",
+        },
+        "output_example": {
+            "available": True,
+            "exchange": "kraken",
+            "source": "live",
+            "as_of": "2026-05-21T12:00:00+00:00",
+            "age_seconds": 0,
+            "nav_usd": 10000.0,
+            "allocation_pct": {"BTC": 0.70, "ETH": 0.25, "CASH": 0.05},
+            "rebalance_hint": "within_band",
         },
     },
     {
@@ -221,8 +287,9 @@ def build_http_route_extensions() -> dict[str, Any]:
                             "type": "string",
                             "enum": list(_TOOL_NAMES),
                             "description": (
-                                "Tier 1 AllocContext tool: get_market_context, "
-                                "get_rebalance_plan, or check_allocation_band."
+                                "AllocContext tool: get_market_context, "
+                                "get_rebalance_plan, get_portfolio_state, or "
+                                "check_allocation_band."
                             ),
                         },
                         "arguments": {

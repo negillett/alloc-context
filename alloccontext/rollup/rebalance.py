@@ -4,9 +4,49 @@ from typing import Any
 
 _ASSETS = ("BTC", "ETH", "CASH")
 
+_DEFAULT_PAIRS = {
+    "kraken": {"BTC": "XBTUSD", "ETH": "ETHUSD"},
+    "coinbase": {"BTC": "BTC-USD", "ETH": "ETH-USD"},
+}
+
 
 def _round_usd(value: float) -> float:
     return round(value)
+
+
+def _product_for_asset(exchange: str, asset: str, pairs: dict[str, str] | None) -> str:
+    if pairs and asset in pairs:
+        return pairs[asset]
+    return _DEFAULT_PAIRS.get(exchange, _DEFAULT_PAIRS["kraken"])[asset]
+
+
+def _buy_move(exchange: str, asset: str, usd: float, pairs: dict[str, str] | None) -> str:
+    amount = _round_usd(usd)
+    if exchange == "coinbase":
+        product = _product_for_asset(exchange, asset, pairs)
+        return f"Buy ~${amount:,.0f} {asset} on {product}"
+    pair = _product_for_asset(exchange, asset, pairs)
+    symbol = "XBT" if asset == "BTC" else asset
+    return f"Buy ~${amount:,.0f} {symbol} ({pair})"
+
+
+def _trim_move(exchange: str, asset: str, usd: float, pairs: dict[str, str] | None) -> str:
+    amount = _round_usd(usd)
+    if exchange == "coinbase":
+        product = _product_for_asset(exchange, asset, pairs)
+        return f"Sell ~${amount:,.0f} {asset} on {product}"
+    pair = _product_for_asset(exchange, asset, pairs)
+    symbol = "XBT" if asset == "BTC" else asset
+    return f"Sell ~${amount:,.0f} {symbol} ({pair})"
+
+
+def _deploy_move(exchange: str, asset: str, usd: float, pairs: dict[str, str] | None) -> str:
+    amount = _round_usd(usd)
+    if exchange == "coinbase":
+        product = _product_for_asset(exchange, asset, pairs)
+        return f"Deploy ~${amount:,.0f} from USD → {asset} on {product}"
+    symbol = "XBT" if asset == "BTC" else asset
+    return f"Deploy ~${amount:,.0f} from cash → {symbol}"
 
 
 def compute_rebalance_plan(
@@ -15,11 +55,14 @@ def compute_rebalance_plan(
     target_pct: dict[str, float],
     *,
     min_usd: float = 1.0,
+    exchange: str = "kraken",
+    pairs: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """USD deltas and Kraken-friendly moves from current to target allocation."""
+    """USD deltas and exchange-style moves from current to target allocation."""
     if nav_usd <= 0:
         return {"available": False, "reason": "no_nav"}
 
+    exchange_key = exchange.strip().lower() if exchange else "kraken"
     current_usd = {a: nav_usd * float(current_pct.get(a) or 0) for a in _ASSETS}
     target_usd = {a: nav_usd * float(target_pct.get(a) or 0) for a in _ASSETS}
     delta_usd = {a: target_usd[a] - current_usd[a] for a in _ASSETS}
@@ -39,20 +82,21 @@ def compute_rebalance_plan(
             share = deploy_total * crypto_need[asset] / total_crypto_need
             if share >= min_usd:
                 deployed[asset] = share
-                moves.append(f"Deploy ~${_round_usd(share):,.0f} from cash → {asset}")
+                moves.append(_deploy_move(exchange_key, asset, share, pairs))
 
     for asset in ("BTC", "ETH"):
         remaining = delta_usd[asset] - deployed[asset]
         if remaining >= min_usd:
-            moves.append(f"Buy ~${_round_usd(remaining):,.0f} more {asset}")
+            moves.append(_buy_move(exchange_key, asset, remaining, pairs))
         elif remaining <= -min_usd:
-            moves.append(f"Trim ~${_round_usd(-remaining):,.0f} from {asset}")
+            moves.append(_trim_move(exchange_key, asset, -remaining, pairs))
 
     if not moves and all(abs(delta_usd[a]) < min_usd for a in _ASSETS):
         moves.append("Already at target within ~$1 rounding.")
 
     return {
         "available": True,
+        "exchange": exchange_key,
         "nav_usd": round(nav_usd, 2),
         "current_usd": {a: round(current_usd[a], 2) for a in _ASSETS},
         "target_usd": {a: round(target_usd[a], 2) for a in _ASSETS},
