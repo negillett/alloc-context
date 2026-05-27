@@ -4,9 +4,7 @@ Reference for running AllocContext timers on a Linux host. For a lighter path,
 use the local CLI from the [README](../README.md).
 
 See [docs/self-hosting.md](../docs/self-hosting.md) for layout, secrets, and CI
-notes. Email briefs and alerts live in the separate
-[alloc-context-operator](https://github.com/negillett/alloc-context-operator)
-repo.
+notes.
 
 ## systemd timers
 
@@ -14,7 +12,7 @@ repo.
 |-------|---------|
 | `alloc-context-ingest` | Hourly |
 | `alloc-context-mcp-http` | On boot (public HTTP MCP, optional x402) |
-| `alloc-context-mcp-internal` | On boot (local MCP for operator, no x402) |
+| `alloc-context-mcp-internal` | On boot (optional loopback MCP, no x402) |
 
 ```bash
 systemctl list-timers 'alloc-context-*' --no-pager

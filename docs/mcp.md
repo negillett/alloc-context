@@ -4,9 +4,8 @@ AllocContext is an **agent-native allocation context API**: deterministic
 BTC/ETH facts, rebalance math, and optional live portfolio reads — exposed as
 MCP tools, with a paid HTTP endpoint via x402 on Base.
 
-Email briefs and LLM synthesis live in
-[alloc-context-operator](https://github.com/negillett/alloc-context-operator).
-This repo is **facts only** — agents narrate JSON with their own model.
+This repo is **facts only** — agents narrate JSON with their own model. Email,
+LLM synthesis, and alert delivery are out of scope here.
 
 ## Surfaces
 
@@ -90,7 +89,6 @@ Bazaar listing title:
 ```text
 pip install "alloc-context[mcp]"      # stdio MCP
 pip install "alloc-context[hosted]"   # HTTP + x402
-pip install alloc-context-operator    # email briefs (separate repo)
 ```
 
 ## Non-goals

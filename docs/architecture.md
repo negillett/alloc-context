@@ -8,9 +8,8 @@ order placement, no gate authority, no bot shadow modes.
 
 **Integration surface:** MCP tools only (`get_context_bundle`,
 `get_market_context`, `get_portfolio_state`, `get_rebalance_plan`,
-`check_allocation_band`). Email briefs, band alerts, and LLM synthesis belong
-in a separate operator stack that calls MCP — see
-[alloc-context-operator](https://github.com/negillett/alloc-context-operator).
+`check_allocation_band`). Email, LLM synthesis, and alert delivery are out of
+scope for this repository.
 
 Agent-facing MCP + x402: [mcp.md](mcp.md).
 
@@ -59,8 +58,7 @@ Expose via MCP `get_context_bundle` or CLI `rollup --stdout`.
 ## Optional self-hosting
 
 Linux + systemd timer for scheduled ingest (feeds the MCP cache) is documented
-in [self-hosting.md](self-hosting.md). Operator email/alerts are deployed from
-the operator repository, not this one.
+in [self-hosting.md](self-hosting.md).
 
 ## Non-goals
 

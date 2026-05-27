@@ -79,7 +79,7 @@ and delta. No LLM.
 
 ## delta
 
-Computed vs the prior archived brief when `prior_as_of` is set (otherwise
+Computed vs the prior saved snapshot when `prior_as_of` is set (otherwise
 falls back to recent snapshots where noted):
 
 - `portfolio_nav_change_usd`
@@ -92,19 +92,18 @@ falls back to recent snapshots where noted):
 
 Formal schema: [schemas/context-bundle.v1.json](../schemas/context-bundle.v1.json)
 
-## Synthesis contract
+## Agent narrative (optional)
 
-LLM input = ContextBundle JSON + `portfolio.notes` from config + system prompt.
-
-LLM output = markdown sections:
+Downstream agents may turn ContextBundle JSON into markdown. A typical outline:
 
 1. Portfolio snapshot
-2. What changed since last brief
+2. What changed since the prior snapshot
 3. Market + sentiment read
 4. Calendar / catalysts
-5. Forward watches (conditional bullets for the prediction log)
+5. Forward watches (conditional bullets)
 6. Observations (not instructions)
 7. Not financial advice
 
 Bounded suggestions allowed (“allocation drift suggests reviewing deploy
-timing”) — never “buy” or “sell” as imperatives.
+timing”) — never “buy” or “sell” as imperatives. This repository does not
+call an LLM or send email.
