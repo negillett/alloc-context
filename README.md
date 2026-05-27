@@ -33,6 +33,9 @@ python -m alloccontext rollup --scope daily --stdout
 pytest
 ```
 
+**MCP (Phase A):** `pip install -e ".[mcp]"` then `alloc-context mcp` (stdio).
+See [docs/cursor-mcp.md](docs/cursor-mcp.md).
+
 CLI entry point: `alloc-context` (same as `python -m alloccontext`).
 
 ## Commands
@@ -50,6 +53,7 @@ CLI entry point: `alloc-context` (same as `python -m alloccontext`).
 | Document | Purpose |
 |----------|---------|
 | [docs/mcp-roadmap.md](docs/mcp-roadmap.md) | MCP + x402 product plan |
+| [docs/cursor-mcp.md](docs/cursor-mcp.md) | Cursor MCP dogfooding |
 | [docs/context-bundle.md](docs/context-bundle.md) | ContextBundle schema |
 | [docs/architecture.md](docs/architecture.md) | Pipeline and trust boundaries |
 | [docs/data-sources.md](docs/data-sources.md) | Ingest sources |
