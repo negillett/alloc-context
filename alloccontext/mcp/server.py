@@ -78,6 +78,29 @@ def create_server(
     )
 
     @mcp.tool(
+        name="get_context_bundle",
+        description=(
+            "Full ContextBundle JSON: portfolio, market, sentiment, macro, and "
+            "delta vs the prior saved snapshot. freshness=cached uses the local "
+            "ingest DB; freshness=live runs ingest first."
+        ),
+    )
+    def get_context_bundle(scope: str = "daily", freshness: str = "cached") -> dict[str, Any]:
+        """Return the full deterministic context bundle for daily or weekly scope."""
+        validated_scope = handlers.validate_scope(scope)
+        validated_freshness = handlers.validate_freshness(freshness)
+        conn = connect(config.paths.db)
+        try:
+            return handlers.get_context_bundle(
+                conn,
+                config,
+                scope=validated_scope,
+                freshness=validated_freshness,
+            )
+        finally:
+            conn.close()
+
+    @mcp.tool(
         name="get_market_context",
         description=(
             "Fused market backdrop: sentiment (Fear & Greed, Kalshi), macro events, "

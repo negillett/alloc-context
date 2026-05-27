@@ -1,25 +1,10 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from datetime import datetime, timezone
+from typing import Any
 
 from alloccontext.horizon import cutoff_iso, cutoff_unix, horizon_days
-
-
-def _prune_brief_files(archive_dir: Path, *, days: int) -> int:
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-    deleted = 0
-    for subdir in ("daily", "weekly"):
-        folder = archive_dir / subdir
-        if not folder.is_dir():
-            continue
-        for path in folder.glob("*.md"):
-            mtime = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc)
-            if mtime < cutoff:
-                path.unlink(missing_ok=True)
-                deleted += 1
-    return deleted
 
 
 def prune_to_horizon(conn: sqlite3.Connection, config) -> dict[str, int]:
@@ -46,16 +31,8 @@ def prune_to_horizon(conn: sqlite3.Connection, config) -> dict[str, int]:
         "DELETE FROM kalshi_snapshots WHERE ts < ?",
         (ts_cutoff,),
     ).rowcount
-    deleted["brief_archive"] = conn.execute(
-        "DELETE FROM brief_archive WHERE as_of < ?",
-        (ts_cutoff,),
-    ).rowcount
-    deleted["brief_predictions"] = conn.execute(
-        "DELETE FROM brief_predictions WHERE brief_as_of < ?",
-        (ts_cutoff,),
-    ).rowcount
-    deleted["alert_log"] = conn.execute(
-        "DELETE FROM alert_log WHERE fired_at < ?",
+    deleted["context_snapshots"] = conn.execute(
+        "DELETE FROM context_snapshots WHERE as_of < ?",
         (ts_cutoff,),
     ).rowcount
     deleted["macro_events"] = conn.execute(
@@ -78,6 +55,5 @@ def prune_to_horizon(conn: sqlite3.Connection, config) -> dict[str, int]:
         "DELETE FROM fred_observations WHERE obs_date < ?",
         (ts_cutoff[:10],),
     ).rowcount
-    deleted["brief_files"] = _prune_brief_files(config.paths.brief_archive_dir, days=days)
     conn.commit()
     return deleted

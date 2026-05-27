@@ -3,10 +3,9 @@
 AllocContext is becoming an **agent-native allocation context API**: structured
 facts and rebalance math, discoverable via the x402 Bazaar, paid per call.
 
-Today, email briefs and LLM synthesis live in the same repo as the facts
-engine. **Phase E** extracts them into a separate operator package. Until
-then, the operator path (cron + email) and the product path (MCP) share core
-rollup code but serve different audiences.
+Today, email briefs and LLM synthesis live in the separate
+[alloc-context-operator](https://github.com/negillett/alloc-context-operator)
+repo. The facts engine exposes MCP only.
 
 ## Product split
 
@@ -114,21 +113,18 @@ Bazaar title:
 
 Split **human email + LLM synthesis** from the public facts engine.
 
-**Moves to `alloc-context-operator` (depends on core)**
+**Moved to [alloc-context-operator](https://github.com/negillett/alloc-context-operator)**
 
-- [ ] `brief/` — daily/weekly orchestration
-- [ ] `synthesize/` — LLM prompts, OpenAI, allocation advice prose
-- [ ] `deliver/` — Resend email, markdown render, alert delivery
-- [ ] `review/` — monthly forward-watch review
-- [ ] `predictions/` — forward watches extracted from brief prose (if kept)
-- [ ] CLI: `brief`, `review`, `alerts --email`
-- [ ] systemd brief/alert timers; optional meta-package for VPS
+- [x] Separate repo; calls AllocContext MCP (`get_context_bundle`, `get_rebalance_plan`, …)
+- [x] Email briefs, band alerts, LLM synthesis, forward-watch review
+- [x] Operator SQLite (brief archive, predictions, alert log)
+- [x] systemd brief/alert timers in operator repo
 
 **Stays in core (`alloc-context`)**
 
-- [ ] `ingest/`, `store/`, `rollup/`, `mcp/`, exchange adapters
-- [ ] Band **evaluation** math (alerts call core; delivery lives in operator)
-- [ ] Break `ingest/runner` → email alert coupling (ingest refreshes data only)
+- [x] `ingest/`, `store/`, `rollup/`, `mcp/`, exchange adapters
+- [x] MCP-only integration surface — no delivery code in core
+- [x] `context_snapshots` for rollup delta (replaces brief archive coupling)
 
 **Install shape**
 

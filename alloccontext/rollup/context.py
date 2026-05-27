@@ -24,7 +24,7 @@ def _load_prior_context(
         return None
     row = conn.execute(
         """
-        SELECT context_json FROM brief_archive
+        SELECT context_json FROM context_snapshots
         WHERE scope = ? AND as_of = ?
         """,
         (scope, prior_as_of),
@@ -37,6 +37,25 @@ def _load_prior_context(
         return None
 
 
+def _save_context_snapshot(
+    conn: sqlite3.Connection,
+    *,
+    scope: Scope,
+    as_of: str,
+    context: dict[str, Any],
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO context_snapshots(scope, as_of, context_json)
+        VALUES (?, ?, ?)
+        ON CONFLICT(scope, as_of) DO UPDATE SET
+          context_json = excluded.context_json
+        """,
+        (scope, as_of, json.dumps(context)),
+    )
+    conn.commit()
+
+
 def build_context_bundle(
     conn,
     config,
@@ -44,12 +63,13 @@ def build_context_bundle(
     scope: Scope,
     rollup: RollupConfig,
     as_of: datetime | None = None,
+    save_snapshot: bool = True,
 ) -> dict[str, Any]:
     now = (as_of or datetime.now(timezone.utc)).replace(microsecond=0)
 
     prior_row = conn.execute(
         """
-        SELECT as_of FROM brief_archive
+        SELECT as_of FROM context_snapshots
         WHERE scope = ? AND as_of < ?
         ORDER BY as_of DESC LIMIT 1
         """,
@@ -71,7 +91,7 @@ def build_context_bundle(
         prior_context=prior_context,
     )
 
-    return {
+    bundle = {
         "bundle_id": f"{scope}:{now.isoformat()}",
         "scope": scope,
         "as_of": now.isoformat(),
@@ -83,3 +103,6 @@ def build_context_bundle(
         "macro": macro,
         "delta": delta,
     }
+    if save_snapshot:
+        _save_context_snapshot(conn, scope=scope, as_of=bundle["as_of"], context=bundle)
+    return bundle

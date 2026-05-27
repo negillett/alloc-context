@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS schema_meta (
@@ -55,15 +55,15 @@ CREATE TABLE IF NOT EXISTS kalshi_snapshots (
   raw_json TEXT
 );
 
-CREATE TABLE IF NOT EXISTS brief_archive (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE IF NOT EXISTS context_snapshots (
   scope TEXT NOT NULL,
   as_of TEXT NOT NULL,
   context_json TEXT NOT NULL,
-  body_markdown TEXT,
-  delivered_via TEXT,
-  UNIQUE(scope, as_of)
+  PRIMARY KEY (scope, as_of)
 );
+
+CREATE INDEX IF NOT EXISTS idx_context_snapshots_scope_as_of
+  ON context_snapshots(scope, as_of);
 
 CREATE TABLE IF NOT EXISTS macro_events (
   event_id TEXT PRIMARY KEY,
@@ -137,33 +137,6 @@ CREATE TABLE IF NOT EXISTS fred_observations (
 
 CREATE INDEX IF NOT EXISTS idx_fred_observations_series_date
   ON fred_observations(series_id, obs_date);
-
-CREATE TABLE IF NOT EXISTS brief_predictions (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  scope TEXT NOT NULL,
-  brief_as_of TEXT NOT NULL,
-  condition_text TEXT NOT NULL,
-  watch_text TEXT NOT NULL,
-  by_text TEXT,
-  created_at TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'open',
-  reviewed_at TEXT,
-  outcome_notes TEXT
-);
-
-CREATE INDEX IF NOT EXISTS idx_brief_predictions_month
-  ON brief_predictions(brief_as_of);
-
-CREATE TABLE IF NOT EXISTS alert_log (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  trigger_key TEXT NOT NULL,
-  dedupe_key TEXT NOT NULL,
-  fired_at TEXT NOT NULL,
-  delivered_via TEXT,
-  context_json TEXT
-);
-
-CREATE INDEX IF NOT EXISTS idx_alert_log_fired_at ON alert_log(fired_at);
 """
 
 

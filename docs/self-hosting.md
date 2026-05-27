@@ -1,9 +1,12 @@
 # Self-hosting (optional)
 
-AllocContext ships as a **library and CLI** for local evaluation. Running a
-scheduled ingest + email pipeline on your own Linux host is supported but not
-the primary product path — see [mcp-roadmap.md](mcp-roadmap.md) for the
-agent-native API direction.
+AllocContext ships as a **library, CLI, and MCP server** for local evaluation.
+Running scheduled ingest on your own Linux host keeps the MCP cache warm; it is
+not required for consumers of a hosted MCP endpoint.
+
+Email briefs, band alerts, and LLM digests are **not** part of this repo.
+Deploy them from [alloc-context-operator](https://github.com/negillett/alloc-context-operator)
+against your MCP URL (local HTTP or hosted x402).
 
 ## Local CLI
 
@@ -18,19 +21,25 @@ Example layout:
 /opt/alloc-context/          # git checkout or CI rsync target
   config/config.yaml
   state/alloccontext.db
-deploy/systemd/              # alloc-context-*.service / *.timer
+deploy/systemd/              # alloc-context-ingest.service / *.timer
 ```
 
 1. Copy `config/config.example.yaml` → `config/config.yaml`.
 2. Set secrets via environment or `.env` (Kraken read-only, optional feed
-   keys, OpenAI for LLM briefs, Resend for email).
-3. Install units from `deploy/systemd/` and run
-   `deploy/render-systemd-timers.py` to bake schedule from config.
+   keys for ingest).
+3. Install ingest units from `deploy/systemd/`.
 4. Or run `deploy/remote-install.sh` on the host after rsync (creates venv,
-   installs package, enables timers).
+   installs package, enables ingest timer).
 
 Systemd units assume `WorkingDirectory` and `EnvironmentFile` paths you
 configure — edit the `.service` files or override with drop-ins for your layout.
+
+| Timer | Service | Purpose |
+|-------|---------|---------|
+| Hourly | ingest | Refresh SQLite cache for MCP Tier 1 |
+
+Run MCP separately (stdio for Cursor, or HTTP + x402 for agents). See
+[docs/mcp-http.md](mcp-http.md).
 
 ## CI deploy (maintainer)
 
@@ -43,8 +52,7 @@ tests pass on `main`. It requires repository secrets:
 | `VPS_HOST` | Yes | Hostname or IP (not logged in workflow output) |
 | `VPS_USER` | No | SSH user (default `root`) |
 
-Application secrets (Kraken, OpenAI, email, data APIs) stay on the host — not
-in GitHub.
+Application secrets (Kraken, data APIs) stay on the host — not in GitHub.
 
 Optional repository **variables** (Settings → Secrets and variables → Actions →
 Variables) for non-secret deploy paths:
