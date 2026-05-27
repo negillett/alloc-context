@@ -53,7 +53,12 @@ def _llms_txt(settings: X402Settings) -> PlainTextResponse:
             "Set X402_PUBLIC_URL for discovery metadata.\n",
             status_code=404,
         )
-    body = build_llms_txt(public_url=public_base, mcp_path=settings.mcp_path)
+    stables = settings.accepted_stables or ("USDC",)
+    body = build_llms_txt(
+        public_url=public_base,
+        mcp_path=settings.mcp_path,
+        accepted_stables=stables,
+    )
     return PlainTextResponse(body, media_type="text/plain; charset=utf-8")
 
 
@@ -61,6 +66,7 @@ def _well_known_x402(settings: X402Settings) -> JSONResponse:
     public_base = resolve_public_base_url()
     if not public_base or not settings.pay_to:
         return JSONResponse({"error": "discovery metadata unavailable"}, status_code=404)
+    stables = settings.accepted_stables or ("USDC",)
     payload = build_well_known_x402(
         public_url=public_base,
         mcp_path=settings.mcp_path,
@@ -68,6 +74,7 @@ def _well_known_x402(settings: X402Settings) -> JSONResponse:
         price_light=settings.mcp_price,
         price_heavy=settings.mcp_price_heavy,
         network=settings.network,
+        accepted_stables=stables,
     )
     return JSONResponse(payload)
 

@@ -9,14 +9,15 @@ from alloccontext.mcp.bazaar import (
     public_mcp_url,
     resolve_public_base_url,
 )
-from alloccontext.mcp.x402_pricing import (
-    DEFAULT_MCP_PRICE_HEAVY,
-    build_mcp_dynamic_price,
+from alloccontext.mcp.x402_pricing import DEFAULT_MCP_PRICE_HEAVY
+from alloccontext.mcp.x402_stables import (
+    build_payment_options_for_stables,
+    load_accepted_stable_symbols,
 )
 from x402.extensions.bazaar import bazaar_resource_server_extension
 from x402.http import FacilitatorConfig, HTTPFacilitatorClient
 from x402.http.constants import DEFAULT_FACILITATOR_URL
-from x402.http.types import PaymentOption, RouteConfig
+from x402.http.types import RouteConfig
 from x402.server import x402ResourceServer
 
 CDP_FACILITATOR_URL = "https://api.cdp.coinbase.com/platform/v2/x402"
@@ -34,6 +35,7 @@ class X402Settings:
     mcp_price: str
     mcp_price_heavy: str = DEFAULT_MCP_PRICE_HEAVY
     mcp_path: str = MCP_HTTP_PATH
+    accepted_stables: tuple[str, ...] = ()
 
 
 def load_x402_settings(*, require_payment: bool = False) -> X402Settings:
@@ -57,6 +59,7 @@ def load_x402_settings(*, require_payment: bool = False) -> X402Settings:
         mcp_price=mcp_price,
         mcp_price_heavy=mcp_price_heavy,
         mcp_path=os.environ.get("X402_MCP_PATH", MCP_HTTP_PATH).strip() or MCP_HTTP_PATH,
+        accepted_stables=load_accepted_stable_symbols(),
     )
 
 
@@ -99,18 +102,16 @@ def _route_resource_url(settings: X402Settings) -> str | None:
 
 
 def build_x402_routes(settings: X402Settings) -> dict[str, RouteConfig]:
-    option = PaymentOption(
-        scheme="exact",
+    accepts = build_payment_options_for_stables(
         pay_to=settings.pay_to,
-        price=build_mcp_dynamic_price(
-            light_price=settings.mcp_price,
-            heavy_price=settings.mcp_price_heavy,
-        ),
         network=settings.network,
+        light_price=settings.mcp_price,
+        heavy_price=settings.mcp_price_heavy,
+        symbols=settings.accepted_stables,
     )
     return {
         f"POST {settings.mcp_path}": RouteConfig(
-            accepts=[option],
+            accepts=accepts,
             resource=_route_resource_url(settings),
             mime_type="application/json",
             description=LISTING_DESCRIPTION,

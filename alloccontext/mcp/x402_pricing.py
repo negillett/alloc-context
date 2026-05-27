@@ -30,7 +30,7 @@ def mcp_call_is_heavy(body: dict[str, Any] | None) -> bool:
     return isinstance(freshness, str) and freshness.strip().lower() == "live"
 
 
-async def _read_request_json(context: HTTPRequestContext) -> dict[str, Any] | None:
+async def read_mcp_request_json(context: HTTPRequestContext) -> dict[str, Any] | None:
     request = getattr(context.adapter, "_request", None)
     if request is None:
         return None
@@ -45,7 +45,7 @@ def build_mcp_dynamic_price(*, light_price: str, heavy_price: str):
     """Build an async x402 DynamicPrice callback for POST /mcp."""
 
     async def resolve_price(context: HTTPRequestContext) -> str:
-        body = await _read_request_json(context)
+        body = await read_mcp_request_json(context)
         if mcp_call_is_heavy(body):
             return heavy_price
         return light_price

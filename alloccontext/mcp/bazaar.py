@@ -493,7 +493,12 @@ def build_http_route_extensions() -> dict[str, Any]:
     )
 
 
-def build_llms_txt(*, public_url: str, mcp_path: str) -> str:
+def build_llms_txt(
+    *,
+    public_url: str,
+    mcp_path: str,
+    accepted_stables: tuple[str, ...] = ("USDC", "EURC"),
+) -> str:
     endpoint = public_mcp_url(base_url=public_url, mcp_path=mcp_path)
     tool_lines = "\n".join(
         f"- `{spec['tool_name']}` — {spec['description']}" for spec in _MCP_TOOLS
@@ -502,12 +507,13 @@ def build_llms_txt(*, public_url: str, mcp_path: str) -> str:
 
 {LISTING_DESCRIPTION}
 
-## Paid MCP (x402, USDC on Base)
+## Paid MCP (x402, Base stablecoins)
 
 - Endpoint: `{endpoint}`
 - Transport: streamable HTTP (`POST {mcp_path}`)
 - Health: `{public_url.rstrip('/')}/health` (free)
-- Payment: x402 exact scheme; unpaid calls return 402 Payment Required.
+- Payment: x402 exact scheme on Base; payer picks one of
+  **{", ".join(accepted_stables)}** (USD-pegged; bridge to Base first).
 - Pricing: **$0.02** cached context/math; **$0.05** live ingest or live portfolio.
 
 ## Tools
@@ -529,6 +535,7 @@ def build_well_known_x402(
     price_light: str = "$0.02",
     price_heavy: str = "$0.05",
     network: str = "eip155:84532",
+    accepted_stables: tuple[str, ...] = ("USDC", "EURC"),
 ) -> dict[str, Any]:
     endpoint = public_mcp_url(base_url=public_url, mcp_path=mcp_path)
     return {
@@ -558,7 +565,11 @@ def build_well_known_x402(
                 "cached_context_and_math": price_light,
                 "live_ingest_or_portfolio": price_heavy,
                 "network": network,
-                "asset": "USDC",
+                "assets": list(accepted_stables),
+                "note": (
+                    "Payer chooses one listed stable on Base; amounts are "
+                    "USD-pegged per call tier."
+                ),
             },
         },
     }

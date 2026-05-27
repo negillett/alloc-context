@@ -28,11 +28,13 @@ export X402_FACILITATOR_URL=https://x402.org/facilitator
 export X402_NETWORK=eip155:84532
 export X402_PRICE_MCP=$0.02
 export X402_PRICE_MCP_HEAVY=$0.05
+export X402_ACCEPTED_STABLES=USDC
 
 alloc-context mcp --transport http --x402
 ```
 
-Unpaid `POST /mcp` returns **402 Payment Required** with USDC payment metadata.
+Unpaid `POST /mcp` returns **402 Payment Required** with one `accepts` entry per
+configured stable on that network (testnet: USDC only by default).
 After payment, retry with `PAYMENT-SIGNATURE` header per x402 spec.
 
 ## Production (CDP facilitator)
@@ -44,9 +46,11 @@ export CDP_API_KEY_ID=...
 export CDP_API_KEY_SECRET=...
 export X402_PUBLIC_URL=https://mcp.yourdomain.com
 export X402_PAY_TO=0xYourWallet
+export X402_ACCEPTED_STABLES=USDC,EURC
 ```
 
 CDP auth is required for verify/settle when using the CDP facilitator URL.
+USDC and EURC use EIP-3009 on Base per CDP network support docs.
 The hosted install includes `cdp-sdk`, which wires `CDP_API_KEY_*` into the
 facilitator client automatically.
 
@@ -57,8 +61,8 @@ source /opt/trading/shared/.env
 python scripts/x402-production-check.py
 ```
 
-Then complete one paid tool call with an x402 HTTP client (mainnet USDC on Base)
-and confirm settlement to `X402_PAY_TO`.
+Then complete one paid tool call with an x402 HTTP client (any enabled Base
+stable) and confirm settlement to `X402_PAY_TO`.
 
 See [Coinbase x402 seller quickstart](https://docs.cdp.coinbase.com/x402/quickstart-for-sellers).
 
