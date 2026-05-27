@@ -12,6 +12,7 @@ from alloccontext.mcp.bazaar import (
 from alloccontext.mcp.x402_pricing import DEFAULT_MCP_PRICE_HEAVY
 from alloccontext.mcp.x402_stables import (
     build_payment_options_for_stables,
+    effective_accepted_stable_symbols,
     load_accepted_stable_symbols,
 )
 from x402.extensions.bazaar import bazaar_resource_server_extension
@@ -107,7 +108,7 @@ def build_x402_routes(settings: X402Settings) -> dict[str, RouteConfig]:
         network=settings.network,
         light_price=settings.mcp_price,
         heavy_price=settings.mcp_price_heavy,
-        symbols=settings.accepted_stables,
+        symbols=effective_accepted_stable_symbols(settings.accepted_stables),
     )
     return {
         f"POST {settings.mcp_path}": RouteConfig(

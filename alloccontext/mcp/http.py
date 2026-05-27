@@ -22,6 +22,7 @@ from alloccontext.mcp.x402_config import (
     build_x402_routes,
     load_x402_settings,
 )
+from alloccontext.mcp.x402_stables import effective_accepted_stable_symbols
 
 
 def _health(_: Any) -> JSONResponse:
@@ -53,7 +54,7 @@ def _llms_txt(settings: X402Settings) -> PlainTextResponse:
             "Set X402_PUBLIC_URL for discovery metadata.\n",
             status_code=404,
         )
-    stables = settings.accepted_stables or ("USDC",)
+    stables = effective_accepted_stable_symbols(settings.accepted_stables)
     body = build_llms_txt(
         public_url=public_base,
         mcp_path=settings.mcp_path,
@@ -66,7 +67,7 @@ def _well_known_x402(settings: X402Settings) -> JSONResponse:
     public_base = resolve_public_base_url()
     if not public_base or not settings.pay_to:
         return JSONResponse({"error": "discovery metadata unavailable"}, status_code=404)
-    stables = settings.accepted_stables or ("USDC",)
+    stables = effective_accepted_stable_symbols(settings.accepted_stables)
     payload = build_well_known_x402(
         public_url=public_base,
         mcp_path=settings.mcp_path,
