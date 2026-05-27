@@ -14,9 +14,8 @@ each request. Not financial advice.
 ingest → store → rollup → MCP tools (+ optional x402 HTTP)
 ```
 
-Email briefs, band alerts, and LLM digests live in the separate
-[alloc-context-operator](https://github.com/negillett/alloc-context-operator)
-repo — they call this MCP surface; they are not part of this package.
+This package is **facts and MCP only** — ingest, rollups, and agent tools.
+Email, LLM synthesis, and alert delivery are out of scope for this repository.
 
 ## Try it locally
 
@@ -49,6 +48,21 @@ CLI entry point: `alloc-context` (same as `python -m alloccontext`).
 | `python -m alloccontext rollup --scope daily --stdout` | ContextBundle JSON (facts) |
 | `python -m alloccontext status` | Ingest freshness, DB path |
 | `alloc-context mcp` | MCP server (stdio or HTTP) |
+
+## MCP tools
+
+| Tool | Purpose |
+|------|---------|
+| `get_context_bundle` | Full ContextBundle — portfolio, market, sentiment, macro, delta, regime |
+| `get_market_context` | Sentiment, macro, ETF, breadth, and market fields (no portfolio) |
+| `get_context_at` | Saved snapshot from ingest history at a given `as_of` |
+| `get_context_delta` | Notable shifts between two saved snapshots |
+| `get_rebalance_plan` | USD rebalance moves from allocation, target, and NAV |
+| `check_allocation_band` | Drift vs target and whether allocation is outside the band |
+| `check_allocation_bands` | Batch band checks for multiple target scenarios |
+| `get_portfolio_state` | Live NAV and allocation from Kraken or Coinbase (credentials in request) |
+
+See [docs/mcp.md](docs/mcp.md) for arguments, pricing, and resources.
 
 ## Documentation
 

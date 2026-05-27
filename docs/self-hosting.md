@@ -4,9 +4,8 @@ AllocContext ships as a **library, CLI, and MCP server** for local evaluation.
 Running scheduled ingest on your own Linux host keeps the MCP cache warm; it is
 not required for consumers of a hosted MCP endpoint.
 
-Email briefs, band alerts, and LLM digests are **not** part of this repo.
-Deploy them from [alloc-context-operator](https://github.com/negillett/alloc-context-operator)
-against your MCP URL (local HTTP or hosted x402).
+Email, LLM synthesis, band alerts, and similar delivery workflows are **not**
+part of this repository.
 
 ## Local CLI
 
@@ -19,13 +18,10 @@ Example layout:
 
 ```text
 /opt/trading/
-  shared/.env                      # secrets for core + operator
+  shared/.env                      # secrets for alloc-context
   alloc-context/                   # git checkout or CI rsync target
     config/config.yaml
     state/alloccontext.db
-  alloc-context-operator/          # briefs + alerts (separate repo)
-    config/config.yaml
-    state/operator.db
 deploy/systemd/                    # ingest timer + public MCP HTTP unit
 ```
 
@@ -34,22 +30,17 @@ deploy/systemd/                    # ingest timer + public MCP HTTP unit
    keys for ingest). See [Shared environment](#shared-environment) below.
 3. Install ingest units from `deploy/systemd/`.
 4. Or run `deploy/remote-install.sh` on the host after rsync (creates venv,
-   installs package, enables ingest timer, restarts public MCP and internal
-   MCP when the operator unit is present).
+   installs package, enables ingest timer, restarts public MCP).
 
 ### Shared environment
 
-When core and [alloc-context-operator](https://github.com/negillett/alloc-context-operator)
-run on one host, point both at the same env file via `ALLOC_CONTEXT_ENV_FILE`
-at install time (example: `/opt/trading/shared/.env`).
+Point systemd units at your env file via `ALLOC_CONTEXT_ENV_FILE` at install
+time (example: `/opt/trading/shared/.env`).
 
 | Variable | Example | Purpose |
 |----------|---------|---------|
 | `ALLOC_CONTEXT_CONFIG` | `/opt/trading/alloc-context/config/config.yaml` | Core config path |
 | `ALLOC_CONTEXT_DB` | `/opt/trading/alloc-context/state/alloccontext.db` | SQLite cache (overrides YAML) |
-
-Operator-specific keys (`OPENAI_API_KEY`, `RESEND_*`, `EMAIL_TO`) live in the
-same shared file; see the operator repo.
 
 Systemd units assume `WorkingDirectory` and `EnvironmentFile` paths you
 configure — edit the `.service` files or override with drop-ins for your layout.

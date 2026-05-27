@@ -48,7 +48,7 @@ for unit in \
   install_systemd_unit "${unit}"
 done
 
-# Disable core brief timers (briefs run from alloc-context-operator).
+# Disable legacy brief/alert timers if present from older installs.
 CORE_BRIEF_TIMERS=(
   alloc-context-daily-brief.timer
   alloc-context-weekly-brief.timer
@@ -74,7 +74,7 @@ _enable_timer alloc-context-ingest.timer
 systemctl enable alloc-context-mcp-http.service
 systemctl restart alloc-context-mcp-http.service
 
-# Operator installs this unit; restart when present so both MCPs load new code.
+# Optional loopback MCP unit (no x402) — restart when present on the host.
 if systemctl cat alloc-context-mcp-internal.service &>/dev/null; then
   systemctl restart alloc-context-mcp-internal.service
 fi

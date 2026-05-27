@@ -34,7 +34,7 @@ Three layers, merged with static curated events winning on duplicates:
 | **[Finnhub](https://finnhub.io/register)** | Free plan | `FINNHUB_API_KEY` | US economic calendar (CPI, NFP, claims, etc.) with impact levels |
 | **[FMP](https://site.financialmodelingprep.com/developer/docs)** | Free plan | `FMP_API_KEY` | Optional backup feed (`macro.fmp_enabled: true`) |
 
-Without any API keys, briefs still list FOMC and other static events. With
+Without any API keys, daily rollups still list FOMC and other static events. With
 Finnhub enabled, dynamic releases fill in between FOMC dates.
 
 ## FRED macro levels
@@ -90,8 +90,8 @@ Stored tables: `etf_flow_days`, `etf_ticker_flows`.
 
 Rollup exposes under `macro.etf.btc` / `macro.etf.eth`:
 
-- `net_flow_usd_1d` / `net_flow_usd_24h` (daily brief)
-- `net_flow_usd_7d` (weekly brief)
+- `net_flow_usd_1d` / `net_flow_usd_24h` (daily scope)
+- `net_flow_usd_7d` (weekly scope)
 - `by_ticker` — issuer breakdown for latest day
 
 ## Kraken contract
@@ -156,15 +156,14 @@ Stored table: `macro_events`.
 
 Rollup exposes:
 
-- Daily brief: `macro.events.past_24h`, `macro.events.next_7d`
-- Weekly brief: `macro.events.past_7d`, `macro.events.next_7d`
+- Daily scope: `macro.events.past_24h`, `macro.events.next_7d`
+- Weekly scope: `macro.events.past_7d`, `macro.events.next_7d`
 - When FRED ingest is active: `macro.indicators` (yields, DXY, CPI level, etc.)
 
 Stored table for FRED: `fred_observations`.
 
 If a source fails, ingest logs error and rollup omits section with
-`available: false`. Brief still sends; LLM prompt lists missing sources
-explicitly. Macro keeps static events when API feeds fail.
+`available: false`. Macro keeps static events when API feeds fail.
 
 ## Rate limits
 
@@ -173,4 +172,3 @@ explicitly. Macro keeps static events when API feeds fail.
 - SoSoValue: one ETF pull per ingest run when `etf_flows` enabled
 - CoinGecko: 2 calls per ingest when enabled; use Demo key if keyless throttles
 - CoinMarketCap: 2 calls per ingest when key present
-- OpenAI: one synthesis call per brief; no per-source LLM calls
