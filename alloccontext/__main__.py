@@ -115,6 +115,13 @@ def cmd_alerts(args: argparse.Namespace) -> int:
     return 0 if result.get("ok") else 1
 
 
+def cmd_mcp(args: argparse.Namespace) -> int:
+    from alloccontext.mcp.server import run_stdio
+
+    run_stdio(config_path=args.config)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="alloc-context")
     parser.add_argument("--config", default=None, help="Path to config YAML")
@@ -159,6 +166,9 @@ def main(argv: list[str] | None = None) -> int:
     alerts_p.add_argument("--stdout", action="store_true")
     alerts_p.add_argument("--email", action="store_true")
     alerts_p.set_defaults(func=cmd_alerts)
+
+    mcp_p = sub.add_parser("mcp", help="Run MCP server over stdio")
+    mcp_p.set_defaults(func=cmd_mcp)
 
     args = parser.parse_args(argv)
     return int(args.func(args))

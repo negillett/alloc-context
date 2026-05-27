@@ -11,12 +11,17 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+mcp = [
+    "mcp>=1.6",
+]
 dev = [
     "pytest>=8.0",
+    "mcp>=1.6",
 ]
 
 [project.scripts]
 alloc-context = "alloccontext.__main__:main"
+alloc-context-mcp = "alloccontext.mcp.server:main"
 
 [build-system]
 requires = ["setuptools>=68"]

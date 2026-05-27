@@ -53,10 +53,10 @@ Bazaar title:
 
 ### Phase A — MCP skeleton (no payment)
 
-- [ ] `alloccontext/mcp/` module — MCP server over stdio or HTTP
-- [ ] Wire Tier 1 tools to existing rollup + `rebalance.py`
-- [ ] JSON schemas + `as_of` / `age_seconds` on every response
-- [ ] Local Cursor config for dogfooding
+- [x] `alloccontext/mcp/` module — MCP server over stdio or HTTP
+- [x] Wire Tier 1 tools to existing rollup + `rebalance.py`
+- [x] JSON schemas + `as_of` / `age_seconds` on every response
+- [x] Local Cursor config for dogfooding
 
 ### Phase B — x402 gate
 

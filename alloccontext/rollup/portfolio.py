@@ -4,6 +4,7 @@ import json
 import sqlite3
 from typing import Any
 
+from alloccontext.rollup.band import check_allocation_band
 from alloccontext.rollup.breadth import build_market_breadth_context
 
 
@@ -25,24 +26,20 @@ def build_portfolio_context(conn: sqlite3.Connection, config) -> dict[str, Any]:
 
     allocation = json.loads(row["allocation_json"] or "{}")
     target = dict(config.portfolio.target_allocations)
-    btc_pct = _allocation_pct(allocation, "BTC")
-    eth_pct = _allocation_pct(allocation, "ETH")
-    cash_pct = _allocation_pct(allocation, "CASH")
-    drift = {
-        "BTC": round(btc_pct - float(target.get("BTC", 0)), 4),
-        "ETH": round(eth_pct - float(target.get("ETH", 0)), 4),
-        "CASH": round(cash_pct - float(target.get("CASH", 0)), 4),
-    }
-    max_drift = max(abs(v) for v in drift.values()) if drift else 0.0
-    band = float(config.portfolio.rebalance_band)
-    if max_drift <= band:
-        rebalance_hint = "within_band"
-    elif cash_pct > float(target.get("CASH", 0)) + band:
-        rebalance_hint = "consider_deploy_cash"
-    elif cash_pct < float(target.get("CASH", 0)) - band:
-        rebalance_hint = "consider_trim_to_cash"
-    else:
-        rebalance_hint = "consider_rebalance"
+    band_result = check_allocation_band(
+        {
+            "BTC": _allocation_pct(allocation, "BTC"),
+            "ETH": _allocation_pct(allocation, "ETH"),
+            "CASH": _allocation_pct(allocation, "CASH"),
+        },
+        target,
+        float(config.portfolio.rebalance_band),
+    )
+    btc_pct = band_result["allocation_pct"]["BTC"]
+    eth_pct = band_result["allocation_pct"]["ETH"]
+    cash_pct = band_result["allocation_pct"]["CASH"]
+    drift = band_result["drift"]
+    rebalance_hint = band_result["hint"]
 
     prior = conn.execute(
         """
