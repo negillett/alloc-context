@@ -15,7 +15,7 @@ def test_deploy_cash_split_to_btc_and_eth() -> None:
     assert plan["delta_usd"]["BTC"] == 37.0
     assert plan["delta_usd"]["ETH"] == 37.0
     assert plan["moves"] == [
-        "Deploy ~$37 from cash → BTC",
+        "Deploy ~$37 from cash → XBT",
         "Deploy ~$37 from cash → ETH",
     ]
 
@@ -41,5 +41,16 @@ def test_trim_when_overweight() -> None:
         {"BTC": 0.80, "ETH": 0.15, "CASH": 0.05},
         {"BTC": 0.70, "ETH": 0.30, "CASH": 0.0},
     )
-    assert any("Trim" in line for line in plan["moves"])
-    assert any("BTC" in line for line in plan["moves"])
+    assert any("Sell" in line for line in plan["moves"])
+    assert any("BTC" in line or "XBT" in line for line in plan["moves"])
+
+
+def test_coinbase_move_wording() -> None:
+    plan = compute_rebalance_plan(
+        1000.0,
+        {"BTC": 0.613, "ETH": 0.163, "CASH": 0.224},
+        {"BTC": 0.65, "ETH": 0.20, "CASH": 0.15},
+        exchange="coinbase",
+    )
+    assert plan["exchange"] == "coinbase"
+    assert all("BTC-USD" in line or "ETH-USD" in line for line in plan["moves"])

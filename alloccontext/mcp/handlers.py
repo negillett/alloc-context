@@ -5,6 +5,12 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 
 from alloccontext.rollup.band import check_allocation_band
+from alloccontext.ingest.exchange.live import (
+    LivePortfolioError,
+    fetch_live_portfolio_snapshot,
+    portfolio_state_from_snapshot,
+    validate_exchange_id,
+)
 from alloccontext.rollup.context import Scope
 from alloccontext.rollup.macro import build_macro_context
 from alloccontext.rollup.portfolio import build_market_context
@@ -91,13 +97,16 @@ def get_rebalance_plan(
     target_pct: dict[str, float],
     nav_usd: float,
     *,
+    exchange: str = "kraken",
     as_of: datetime | None = None,
 ) -> dict[str, Any]:
     now = (as_of or utc_now()).replace(microsecond=0)
+    exchange_id = validate_exchange_id(exchange)
     plan = compute_rebalance_plan(
         float(nav_usd),
         _normalize_pct(allocation_pct),
         _normalize_pct(target_pct),
+        exchange=exchange_id,
     )
     return with_staleness(
         {
@@ -107,6 +116,52 @@ def get_rebalance_plan(
         },
         as_of=now,
     )
+
+
+def get_portfolio_state(
+    config,
+    *,
+    exchange: str,
+    api_key: str,
+    api_secret: str,
+    target_pct: dict[str, float] | None = None,
+    band: float | None = None,
+    as_of: datetime | None = None,
+) -> dict[str, Any]:
+    exchange_id = validate_exchange_id(exchange)
+    target = _normalize_pct(target_pct or dict(config.portfolio.target_allocations))
+    band_width = float(
+        band if band is not None else config.portfolio.rebalance_band
+    )
+    try:
+        snap = fetch_live_portfolio_snapshot(
+            exchange_id,
+            api_key,
+            api_secret,
+            config,
+        )
+    except LivePortfolioError as exc:
+        return with_staleness(
+            {
+                "available": False,
+                "exchange": exchange_id,
+                "source": "live",
+                "reason": str(exc),
+            },
+            as_of=as_of or utc_now(),
+        )
+
+    payload = portfolio_state_from_snapshot(
+        snap,
+        exchange_id=exchange_id,
+        target_pct=target,
+        band=band_width,
+    )
+    snapshot_ts = payload.pop("snapshot_ts", None)
+    as_of_dt = as_of
+    if as_of_dt is None and snapshot_ts:
+        as_of_dt = datetime.fromisoformat(snapshot_ts)
+    return with_staleness(payload, as_of=as_of_dt or utc_now())
 
 
 def check_band(
