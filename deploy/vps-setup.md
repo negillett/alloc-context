@@ -13,13 +13,13 @@ repo.
 | Timer | Cadence |
 |-------|---------|
 | `alloc-context-ingest` | Hourly |
-| `alloc-context-mcp` | On boot (public HTTP MCP, optional x402) |
+| `alloc-context-mcp-http` | On boot (public HTTP MCP, optional x402) |
 | `alloc-context-mcp-internal` | On boot (local MCP for operator, no x402) |
 
 ```bash
 systemctl list-timers 'alloc-context-*' --no-pager
 journalctl -u alloc-context-ingest.service -n 30 --no-pager
-journalctl -u alloc-context-mcp.service -n 30 --no-pager
+journalctl -u alloc-context-mcp-http.service -n 30 --no-pager
 ```
 
 ## Verify
@@ -36,7 +36,7 @@ curl -s http://127.0.0.1:8000/health
 
 ```bash
 systemctl disable --now alloc-context-ingest.timer \
-  alloc-context-mcp.service alloc-context-mcp-internal.service
+  alloc-context-mcp-http.service alloc-context-mcp-internal.service
 ```
 
 Redeploy a known-good commit or restore from backup.

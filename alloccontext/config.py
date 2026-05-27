@@ -232,9 +232,7 @@ def _load_exchanges_config(
 def _resolve_config_path(path: str | Path | None) -> Path:
     if path is not None:
         return Path(path)
-    env_path = os.environ.get("ALLOC_CONTEXT_CONFIG") or os.environ.get(
-        "MARKET_ANALYST_CONFIG"
-    )
+    env_path = os.environ.get("ALLOC_CONTEXT_CONFIG", "").strip()
     if env_path:
         return Path(env_path)
     local = Path("config/config.yaml")
@@ -261,8 +259,8 @@ def load_config(path: str | Path | None = None) -> AppConfig:
     coinmarketcap_raw = raw.get("coinmarketcap") or {}
     fred_raw = raw.get("fred") or {}
 
-    db_env = os.environ.get("ALLOC_CONTEXT_DB") or os.environ.get("MARKET_ANALYST_DB")
-    db = _path(db_env, str(paths_raw.get("db") or "state/alloccontext.db"))
+    db_env = os.environ.get("ALLOC_CONTEXT_DB", "").strip()
+    db = _path(db_env or None, str(paths_raw.get("db") or "state/alloccontext.db"))
 
     kalshi_fallback_tactical = kalshi_raw.get("fallback_tactical_snapshot")
     kalshi_fallback_state = kalshi_raw.get("fallback_state")

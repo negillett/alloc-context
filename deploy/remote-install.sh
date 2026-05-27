@@ -11,16 +11,6 @@ PIP="${REMOTE}/.venv/bin/pip"
 install -d -m 750 -o trading -g trading "${REMOTE}/state"
 install -d -m 750 -o trading -g trading "${REMOTE}/config"
 
-# One-time state migration from market-analyst checkout (pre-AllocContext).
-OLD_REMOTE="/opt/trading/market-analyst"
-if [[ -d "${OLD_REMOTE}/state" && ! -e "${REMOTE}/state/alloccontext.db" ]]; then
-  if [[ -f "${OLD_REMOTE}/state/analyst.db" ]]; then
-    cp -a "${OLD_REMOTE}/state/." "${REMOTE}/state/"
-    chown -R trading:trading "${REMOTE}/state"
-    echo "migrated state from ${OLD_REMOTE}/state"
-  fi
-fi
-
 if [[ ! -f "${CONFIG}" ]]; then
   install -m 640 "${REMOTE}/config/config.example.yaml" "${CONFIG}"
   chown trading:trading "${CONFIG}"
@@ -56,11 +46,8 @@ for unit in \
   install_systemd_unit "${unit}"
 done
 
-# Disable pre-rename and operator systemd units if present from prior installs.
+# Disable legacy timers from older single-repo or pre-operator installs.
 STALE_UNITS=(
-  market-analyst-ingest.timer
-  market-analyst-daily-brief.timer
-  market-analyst-weekly-brief.timer
   alloc-context-daily-brief.timer
   alloc-context-weekly-brief.timer
   alloc-context-alerts.timer
