@@ -1,0 +1,14 @@
+[
+  "bundle_id",
+  "scope",
+  "as_of",
+  "horizon_days",
+  "portfolio",
+  "market",
+  "sentiment",
+  "macro",
+  "delta",
+  "regime",
+  "freshness",
+  "age_seconds"
+]

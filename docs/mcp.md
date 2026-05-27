@@ -82,6 +82,9 @@ USD-pegged stable (default **USDC, EURC**; bridge to Base first):
 `X402_ACCEPTED_STABLES` controls which stables appear in 402 `accepts`.
 Setup: [mcp-http.md](mcp-http.md). Discovery: [mcp-discovery.md](mcp-discovery.md).
 
+Tool JSON contracts are validated in `tests/test_mcp_contracts.py` via
+`alloccontext.mcp.contracts` (required keys per tool).
+
 Bazaar listing title:
 
 > AllocContext — BTC/ETH allocation drift, rebalance moves & market context
