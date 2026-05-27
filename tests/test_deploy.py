@@ -5,15 +5,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_brief_timers_do_not_use_persistent_catchup() -> None:
-    for name in (
-        "alloc-context-daily-brief.timer",
-        "alloc-context-weekly-brief.timer",
-    ):
-        text = (REPO_ROOT / "deploy/systemd" / name).read_text()
-        assert "Persistent=true" not in text
-
-
 def test_ingest_timer_runs_hourly() -> None:
     text = (REPO_ROOT / "deploy/systemd/alloc-context-ingest.timer").read_text()
     assert "OnCalendar=hourly" in text
@@ -28,3 +19,11 @@ def test_remote_install_avoids_restarting_active_timers() -> None:
     text = (REPO_ROOT / "deploy/remote-install.sh").read_text()
     assert "_enable_timer" in text
     assert "is-active --quiet" in text
+
+
+def test_core_deploy_installs_ingest_only() -> None:
+    text = (REPO_ROOT / "deploy/remote-install.sh").read_text()
+    install_block = text.split("for unit in")[1].split("done")[0]
+    assert "alloc-context-ingest.service" in install_block
+    assert "daily-brief" not in install_block
+    assert "alerts.timer" not in install_block

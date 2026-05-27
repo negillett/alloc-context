@@ -26,7 +26,7 @@ journalctl -u alloc-context-daily-brief.service -n 30 --no-pager
 cd /path/to/alloc-context
 source .venv/bin/activate
 python -m alloccontext status
-python -m alloccontext_operator brief daily --stdout
+python -m alloccontext rollup --scope daily --stdout
 ```
 
 ## Rollback

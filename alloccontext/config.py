@@ -13,17 +13,6 @@ from alloccontext.rollup.cluster_config import RollupConfig, load_rollup_config
 @dataclass(frozen=True)
 class PathsConfig:
     db: Path
-    brief_archive_dir: Path
-
-
-@dataclass(frozen=True)
-class CalendarConfig:
-    timezone: str
-    daily_brief_hour_local: int
-    daily_brief_minute_local: int
-    weekly_brief_day: str
-    weekly_brief_hour_local: int
-    weekly_brief_minute_local: int
 
 
 @dataclass(frozen=True)
@@ -98,44 +87,6 @@ class KalshiConfig:
 
 
 @dataclass(frozen=True)
-class SynthesisConfig:
-    enabled: bool
-    provider: str
-    model: str
-    temperature: float
-    timeout_seconds: float
-    daily_prompt_version: str
-    weekly_prompt_version: str
-
-
-@dataclass(frozen=True)
-class EmailConfig:
-    enabled: bool
-    from_address: str | None
-    to_address: str | None
-
-
-@dataclass(frozen=True)
-class AlertTriggersConfig:
-    rebalance_band: bool
-
-
-@dataclass(frozen=True)
-class AlertsConfig:
-    enabled: bool
-    min_hours_between: int
-    max_per_7d: int
-    dedupe_hours: int
-    triggers: AlertTriggersConfig
-
-
-@dataclass(frozen=True)
-class DeliverConfig:
-    email: EmailConfig
-    alerts: AlertsConfig
-
-
-@dataclass(frozen=True)
 class MacroConfig:
     static_calendar: Path
     countries: list[str]
@@ -186,15 +137,12 @@ class CoinmarketcapConfig:
 class AppConfig:
     paths: PathsConfig
     horizon: HorizonConfig
-    calendar: CalendarConfig
     portfolio: PortfolioConfig
     ingest: IngestConfig
     kraken: KrakenConfig
     exchanges: ExchangesConfig
     kalshi: KalshiConfig
     rollup: RollupConfig
-    synthesis: SynthesisConfig
-    deliver: DeliverConfig
     macro: MacroConfig
     etf: EtfConfig
     coingecko: CoingeckoConfig
@@ -303,15 +251,10 @@ def load_config(path: str | Path | None = None) -> AppConfig:
 
     paths_raw = raw.get("paths") or {}
     horizon_raw = raw.get("horizon") or {}
-    calendar_raw = raw.get("calendar") or {}
     portfolio_raw = raw.get("portfolio") or {}
     ingest_raw = raw.get("ingest") or {}
     kraken_raw = raw.get("kraken") or {}
     kalshi_raw = raw.get("kalshi") or {}
-    synthesis_raw = raw.get("synthesis") or {}
-    deliver_raw = raw.get("deliver") or {}
-    email_raw = deliver_raw.get("email") or {}
-    alerts_raw = deliver_raw.get("alerts") or {}
     macro_raw = raw.get("macro") or {}
     etf_raw = raw.get("etf") or {}
     coingecko_raw = raw.get("coingecko") or {}
@@ -340,21 +283,9 @@ def load_config(path: str | Path | None = None) -> AppConfig:
     return AppConfig(
         paths=PathsConfig(
             db=db,
-            brief_archive_dir=_path(
-                str(paths_raw.get("brief_archive_dir") or "state/briefs"),
-                "state/briefs",
-            ),
         ),
         horizon=HorizonConfig(
             days=int(horizon_raw.get("days") or 90),
-        ),
-        calendar=CalendarConfig(
-            timezone=str(calendar_raw.get("timezone") or "America/Chicago"),
-            daily_brief_hour_local=int(calendar_raw.get("daily_brief_hour_local") or 7),
-            daily_brief_minute_local=int(calendar_raw.get("daily_brief_minute_local") or 0),
-            weekly_brief_day=str(calendar_raw.get("weekly_brief_day") or "monday"),
-            weekly_brief_hour_local=int(calendar_raw.get("weekly_brief_hour_local") or 7),
-            weekly_brief_minute_local=int(calendar_raw.get("weekly_brief_minute_local") or 0),
         ),
         portfolio=PortfolioConfig(
             target_allocations=dict(portfolio_raw.get("target_allocations") or {}),
@@ -399,35 +330,6 @@ def load_config(path: str | Path | None = None) -> AppConfig:
             ),
         ),
         rollup=load_rollup_config(raw),
-        synthesis=SynthesisConfig(
-            enabled=bool(synthesis_raw.get("enabled", True)),
-            provider=str(synthesis_raw.get("provider") or "openai"),
-            model=str(synthesis_raw.get("model") or "gpt-4.1-mini"),
-            temperature=float(synthesis_raw.get("temperature") or 0.3),
-            timeout_seconds=float(synthesis_raw.get("timeout_seconds") or 60),
-            daily_prompt_version=str(synthesis_raw.get("daily_prompt_version") or "daily_brief_v1"),
-            weekly_prompt_version=str(
-                synthesis_raw.get("weekly_prompt_version") or "weekly_brief_v1"
-            ),
-        ),
-        deliver=DeliverConfig(
-            email=EmailConfig(
-                enabled=bool(email_raw.get("enabled", True)),
-                from_address=email_raw.get("from_address"),
-                to_address=email_raw.get("to_address"),
-            ),
-            alerts=AlertsConfig(
-                enabled=bool(alerts_raw.get("enabled", False)),
-                min_hours_between=int(alerts_raw.get("min_hours_between") or 24),
-                max_per_7d=int(alerts_raw.get("max_per_7d") or 5),
-                dedupe_hours=int(alerts_raw.get("dedupe_hours") or 72),
-                triggers=AlertTriggersConfig(
-                    rebalance_band=bool(
-                        (alerts_raw.get("triggers") or {}).get("rebalance_band", True)
-                    ),
-                ),
-            ),
-        ),
         macro=MacroConfig(
             static_calendar=_path(
                 str(macro_raw.get("static_calendar") or "config/macro-calendar.yaml"),

@@ -48,7 +48,6 @@ def cmd_status(args: argparse.Namespace) -> int:
         "schema_version": SCHEMA_VERSION,
         "horizon_days": config.horizon.days,
         "ingest_sources_enabled": config.ingest.sources,
-        "alerts_enabled": config.deliver.alerts.enabled,
         **snapshot,
     }
     print(json.dumps(payload, indent=2))

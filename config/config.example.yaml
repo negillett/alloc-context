@@ -2,19 +2,10 @@
 
 paths:
   db: state/alloccontext.db
-  brief_archive_dir: state/briefs
 
-# Quarterly retention for all stored history (F&G, OHLC, snapshots, briefs).
+# Quarterly retention for stored history (F&G, OHLC, snapshots, rollups).
 horizon:
   days: 90
-
-calendar:
-  timezone: America/Chicago
-  daily_brief_hour_local: 7
-  daily_brief_minute_local: 0
-  weekly_brief_day: monday
-  weekly_brief_hour_local: 7
-  weekly_brief_minute_local: 0
 
 portfolio:
   target_allocations:
@@ -96,15 +87,6 @@ rollup:
     leader_assets: [BTC, ETH]
     drift_lookback_minutes: 60
 
-synthesis:
-  enabled: true
-  provider: openai
-  model: gpt-4.1-mini
-  temperature: 0.3
-  timeout_seconds: 60
-  daily_prompt_version: daily_brief_v1
-  weekly_prompt_version: weekly_brief_v1
-
 macro:
   static_calendar: config/macro-calendar.yaml
   countries: [US]
@@ -134,16 +116,3 @@ fred:
   series_catalog: config/fred-series.yaml
   lookback_days: 120
   timeout_seconds: 20
-
-deliver:
-  email:
-    enabled: true
-    from_address: null   # or RESEND_FROM / EMAIL_FROM env
-    to_address: null     # or EMAIL_TO env
-  alerts:
-    enabled: false
-    min_hours_between: 24
-    max_per_7d: 5
-    dedupe_hours: 72
-    triggers:
-      rebalance_band: true

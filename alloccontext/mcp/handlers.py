@@ -35,6 +35,34 @@ def validate_freshness(freshness: str) -> Freshness:
     return freshness  # type: ignore[return-value]
 
 
+def get_context_bundle(
+    conn: sqlite3.Connection,
+    config,
+    *,
+    scope: Scope = "daily",
+    freshness: Freshness = "cached",
+    as_of: datetime | None = None,
+) -> dict[str, Any]:
+    if freshness == "live":
+        from alloccontext.ingest.runner import run_ingest
+
+        run_ingest(conn, config)
+
+    from alloccontext.rollup.context import build_context_bundle
+
+    now = (as_of or utc_now()).replace(microsecond=0)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    bundle = build_context_bundle(
+        conn,
+        config,
+        scope=scope,
+        rollup=config.rollup,
+        as_of=now,
+    )
+    return with_staleness(bundle, as_of=now)
+
+
 def get_market_context(
     conn: sqlite3.Connection,
     config,

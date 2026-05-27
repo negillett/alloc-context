@@ -8,8 +8,7 @@ CONFIG="${REMOTE}/config/config.yaml"
 PY="${REMOTE}/.venv/bin/python"
 PIP="${REMOTE}/.venv/bin/pip"
 
-install -d -m 750 -o trading -g trading "${REMOTE}/state/briefs/daily"
-install -d -m 750 -o trading -g trading "${REMOTE}/state/briefs/weekly"
+install -d -m 750 -o trading -g trading "${REMOTE}/state"
 install -d -m 750 -o trading -g trading "${REMOTE}/config"
 
 # One-time state migration from market-analyst checkout (pre-AllocContext).
@@ -33,12 +32,7 @@ fi
 
 chown -R trading:trading "${REMOTE}/.venv" "${REMOTE}/config" "${REMOTE}/state"
 "${PIP}" install -e "${REMOTE}" -q
-"${PIP}" install -e "${REMOTE}/operator" -q
 chown -R trading:trading "${REMOTE}"
-
-"${PY}" "${REMOTE}/deploy/render-systemd-timers.py" \
-  --config "${CONFIG}" \
-  --repo-root "${REMOTE}"
 
 ENV_FILE="${ALLOC_CONTEXT_ENV_FILE:-${REMOTE}/.env}"
 
@@ -58,21 +52,18 @@ install_systemd_unit() {
 
 for unit in \
   alloc-context-ingest.service \
-  alloc-context-ingest.timer \
-  alloc-context-alerts.service \
-  alloc-context-alerts.timer \
-  alloc-context-daily-brief.service \
-  alloc-context-daily-brief.timer \
-  alloc-context-weekly-brief.service \
-  alloc-context-weekly-brief.timer; do
+  alloc-context-ingest.timer; do
   install_systemd_unit "${unit}"
 done
 
-# Disable pre-rename systemd units if present from prior installs.
+# Disable pre-rename and operator systemd units if present from prior installs.
 STALE_UNITS=(
   market-analyst-ingest.timer
   market-analyst-daily-brief.timer
   market-analyst-weekly-brief.timer
+  alloc-context-daily-brief.timer
+  alloc-context-weekly-brief.timer
+  alloc-context-alerts.timer
 )
 for unit in "${STALE_UNITS[@]}"; do
   systemctl disable --now "${unit}" 2>/dev/null || true
@@ -80,8 +71,6 @@ done
 
 systemctl daemon-reload
 
-# Avoid re-starting active timers on deploy — Persistent ingest catch-up is
-# fine, but brief timers would email immediately after today's schedule.
 _enable_timer() {
   local unit="$1"
   if systemctl is-active --quiet "${unit}" 2>/dev/null; then
@@ -92,13 +81,10 @@ _enable_timer() {
 }
 
 _enable_timer alloc-context-ingest.timer
-_enable_timer alloc-context-alerts.timer
-_enable_timer alloc-context-daily-brief.timer
-_enable_timer alloc-context-weekly-brief.timer
 
 if [[ -n "${DEPLOYED_SHA:-}" ]]; then
   printf '%s\n' "${DEPLOYED_SHA}" > "${REMOTE}/.deployed-sha"
 fi
 
 echo "remote install ok: ${REMOTE}"
-echo "alloc-context timers enabled"
+echo "alloc-context ingest timer enabled"

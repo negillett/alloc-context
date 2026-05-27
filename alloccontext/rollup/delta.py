@@ -72,7 +72,7 @@ def build_delta_context(
             delta["portfolio_nav_change_usd"] = pnl
             if abs(pnl) >= 100:
                 delta["notable_shifts"].append(
-                    f"Portfolio Δ ${pnl:+.2f} since prior brief"
+                    f"Portfolio Δ ${pnl:+.2f} since prior snapshot"
                 )
         else:
             pnl = (portfolio.get("pnl_usd") or {}).get("since_prior_snapshot")
@@ -92,7 +92,7 @@ def build_delta_context(
             market_changes[f"{symbol}_change_pct_since_prior"] = change
             if abs(change) >= 2:
                 delta["notable_shifts"].append(
-                    f"{symbol.upper()} {change:+.2f}% since prior brief"
+                    f"{symbol.upper()} {change:+.2f}% since prior snapshot"
                 )
     if market_changes:
         delta["market"] = market_changes

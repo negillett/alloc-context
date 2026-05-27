@@ -61,6 +61,36 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
         },
     },
     {
+        "tool_name": "get_context_bundle",
+        "description": (
+            "Full ContextBundle JSON: portfolio, market, sentiment, macro, and "
+            "delta vs the prior saved snapshot. freshness=cached or live."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "scope": {
+                    "type": "string",
+                    "enum": ["daily", "weekly"],
+                },
+                "freshness": {
+                    "type": "string",
+                    "enum": ["cached", "live"],
+                },
+            },
+        },
+        "example": {"scope": "daily", "freshness": "cached"},
+        "output_example": {
+            "bundle_id": "daily:2026-05-21T12:00:00+00:00",
+            "scope": "daily",
+            "portfolio": {"available": True},
+            "market": {"available": True},
+            "sentiment": {"available": True},
+            "macro": {"available": True},
+            "delta": {"available": True},
+        },
+    },
+    {
         "tool_name": "get_rebalance_plan",
         "description": (
             "Compute USD deltas and exchange-style move lines to reach a target "
