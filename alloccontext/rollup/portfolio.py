@@ -133,5 +133,5 @@ def build_spot_market_assets(conn: sqlite3.Connection, spot) -> dict[str, Any]:
 
 
 def build_kraken_market_assets(conn: sqlite3.Connection, config) -> dict[str, Any]:
-    """Deprecated alias — use build_spot_market_assets with primary exchange config."""
+    """Compatibility alias — use build_spot_market_assets with primary exchange config."""
     return build_spot_market_assets(conn, config.exchanges.primary_spot())

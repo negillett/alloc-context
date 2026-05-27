@@ -55,7 +55,7 @@ configure — edit the `.service` files or override with drop-ins for your layou
 
 | Timer | Service | Purpose |
 |-------|---------|---------|
-| Hourly | ingest | Refresh SQLite cache for MCP Tier 1 |
+| Hourly | ingest | Refresh SQLite cache for MCP context tools |
 
 Run MCP separately (stdio for Cursor, or HTTP + x402 for agents). See
 [docs/mcp-http.md](mcp-http.md).

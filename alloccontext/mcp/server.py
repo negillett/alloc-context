@@ -168,7 +168,7 @@ def create_server(
     @mcp.tool(
         name="get_portfolio_state",
         description=(
-            "Tier 2 BYOK: live portfolio NAV, allocation, drift, and band hint from "
+            "Live portfolio NAV, allocation, drift, and band hint from "
             "read-only exchange credentials passed in the request. Credentials are "
             "never stored. Supports kraken and coinbase."
         ),

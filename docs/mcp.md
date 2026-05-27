@@ -15,11 +15,11 @@ This repo is **facts only** — agents narrate JSON with their own model.
 | **MCP (stdio)** | Local development and Cursor |
 | **MCP (HTTP + x402)** | Agents and wallets on the public internet |
 | **Bazaar / discovery** | Agent search via CDP and `/.well-known/x402.json` |
-| **CLI + ingest** | Self-hosted cache for MCP Tier 1 |
+| **CLI + ingest** | Self-hosted cache for MCP context tools |
 
 ## Tools
 
-### Tier 1 — cached context and math (no user keys)
+### Cached context and math (no user keys)
 
 Shared optional args on context tools:
 
@@ -40,10 +40,10 @@ for cached portfolio drift with optional overrides).
 | `check_allocation_band` | `allocation_pct`, `target_pct`, `band` | Drift, `outside_band`, `hint` |
 
 On a self-hosted install, `freshness=cached` reads the ingest SQLite DB.
-Hosted endpoints serve the operator's ingested cache unless the client requests
+Hosted endpoints serve the host ingested cache unless the client requests
 `freshness=live` (requires API keys on the host).
 
-### Tier 2 — BYOK live portfolio
+### Live portfolio (credentials in request)
 
 | Tool | Input | Output |
 |------|-------|--------|
@@ -56,7 +56,8 @@ exchanges: **Kraken** and **Coinbase** Advanced Trade (read-only).
 
 Default hosted price: **$0.02 USDC per call** on Base mainnet (`X402_PRICE_MCP`).
 
-Typical ranges: **$0.01–0.05** Tier 1; **$0.05–0.10** Tier 2 live portfolio.
+Typical ranges: **$0.01–0.05** for cached context and math;
+**$0.05–0.10** for live portfolio reads.
 
 Setup: [mcp-http.md](mcp-http.md). Discovery: [mcp-discovery.md](mcp-discovery.md).
 
@@ -75,7 +76,7 @@ pip install alloc-context-operator    # email briefs (separate repo)
 ## Non-goals
 
 - LLM on any paid MCP path
-- Storing user exchange secrets on a shared server (BYOK in request only)
+- Storing user exchange secrets on a shared server (credentials in request only)
 - Automated trade execution
 - Asset universes beyond BTC / ETH / CASH unless explicitly expanded
 

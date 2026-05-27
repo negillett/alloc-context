@@ -7,7 +7,8 @@ deterministic JSON over MCP.
 The product is an **agent-native MCP API** with x402 pay-per-call on Base —
 see [docs/mcp.md](docs/mcp.md).
 
-Read-only exchange access when configured (BYOK Tier 2). Not financial advice.
+Optional live portfolio reads use read-only exchange credentials passed in
+each request. Not financial advice.
 
 ```text
 ingest → store → rollup → MCP tools (+ optional x402 HTTP)
@@ -53,7 +54,7 @@ CLI entry point: `alloc-context` (same as `python -m alloccontext`).
 
 | Document | Purpose |
 |----------|---------|
-| [docs/mcp.md](docs/mcp.md) | MCP tools, tiers, and x402 |
+| [docs/mcp.md](docs/mcp.md) | MCP tools and x402 |
 | [docs/mcp-http.md](docs/mcp-http.md) | HTTP MCP + x402 setup |
 | [docs/mcp-discovery.md](docs/mcp-discovery.md) | Bazaar and agent discovery |
 | [docs/cursor-mcp.md](docs/cursor-mcp.md) | Cursor stdio MCP |

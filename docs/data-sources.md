@@ -7,7 +7,7 @@ external APIs.
 
 All stored history uses a single **`horizon.days`** config (default **90**):
 F&G rows, Kraken OHLC bars, portfolio snapshots, Kalshi snapshots, macro events,
-and archived briefs. Ingest prunes older rows each run. Brief *narrative* windows
+and rollup snapshots. Ingest prunes aged rows each run. Short narrative windows
 (e.g. “since yesterday”, “next 7 days” calendar) stay short; the **store** is
 quarter-scoped.
 
@@ -20,19 +20,19 @@ quarter-scoped.
 | **Fear & Greed** | `ingest/fear_greed.py` | each ingest cycle | none (public API) |
 | **Macro calendar** | `ingest/macro_calendar.py` | daily | none for static YAML; optional free API keys |
 | **ETF flows** | `ingest/etf_flows.py` | daily | optional `SOSOVALUE_API_KEY` or JSON fallback |
-| **CoinGecko** | `ingest/coingecko.py` | hourly | none (keyless); optional `COINGECKO_API_KEY` demo tier |
+| **CoinGecko** | `ingest/coingecko.py` | hourly | none (keyless); optional `COINGECKO_API_KEY` demo plan |
 | **CoinMarketCap** | `ingest/coinmarketcap.py` | hourly | `COINMARKETCAP_API_KEY` (free Basic plan) |
 | **FRED** macro levels | `ingest/fred.py` | daily | `FRED_API_KEY` (free) |
 
-## Macro calendar (free tiers)
+## Macro calendar (free APIs)
 
 Three layers, merged with static curated events winning on duplicates:
 
 | Layer | Cost | Key | What you get |
 |-------|------|-----|--------------|
 | **Static YAML** | Free, no signup | none | FOMC dates, Jackson Hole, other curated US catalysts (`config/macro-calendar.yaml`) |
-| **[Finnhub](https://finnhub.io/register)** | Free tier | `FINNHUB_API_KEY` | US economic calendar (CPI, NFP, claims, etc.) with impact levels |
-| **[FMP](https://site.financialmodelingprep.com/developer/docs)** | Free tier | `FMP_API_KEY` | Optional backup feed (`macro.fmp_enabled: true`) |
+| **[Finnhub](https://finnhub.io/register)** | Free plan | `FINNHUB_API_KEY` | US economic calendar (CPI, NFP, claims, etc.) with impact levels |
+| **[FMP](https://site.financialmodelingprep.com/developer/docs)** | Free plan | `FMP_API_KEY` | Optional backup feed (`macro.fmp_enabled: true`) |
 
 Without any API keys, briefs still list FOMC and other static events. With
 Finnhub enabled, dynamic releases fill in between FOMC dates.
@@ -79,7 +79,7 @@ Stored table: `crypto_market_snapshots`.
 
 | Layer | Cost | Key | What you get |
 |-------|------|-----|--------------|
-| **[SoSoValue](https://openapi.sosovalue.com)** | Free demo tier | `SOSOVALUE_API_KEY` | Daily BTC/ETH spot ETF net inflows + per-ticker (IBIT, FBTC, ETHA, …) |
+| **[SoSoValue](https://openapi.sosovalue.com)** | Free demo plan | `SOSOVALUE_API_KEY` | Daily BTC/ETH spot ETF net inflows + per-ticker (IBIT, FBTC, ETHA, …) |
 | **JSON fallback** | Free | none | `etf.fallback_snapshot` file (same shape as `tests/fixtures/etf_flows.json`) |
 
 Farside Investors publishes similar tables but sits behind Cloudflare — not suitable
@@ -141,7 +141,7 @@ Optional `KALSHI_API_KEY` / `KALSHI_API_SECRET` are reserved for future
 authenticated endpoints; sentiment ingest does not use them today.
 
 Stored table: `kalshi_snapshots`. Meta keys: `cf_price_history`,
-`kalshi_markets` (alternate meta key `kalshi_markets_15m` still read as fallback).
+`kalshi_markets` (alternate meta key `kalshi_markets_15m` is also accepted).
 
 ## F&G contract
 
