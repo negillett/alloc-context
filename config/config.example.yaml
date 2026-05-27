@@ -30,6 +30,7 @@ ingest:
   interval_minutes: 60
   sources:
     kraken: true
+    coinbase: false
     kalshi: true
     fear_greed: true
     macro_calendar: true
@@ -46,6 +47,12 @@ exchanges:
     enabled: true
     ohlc_interval_minutes: 1440
     pairs: [XBTUSD, ETHUSD]
+    retry_backoff_seconds: 2.0
+    max_retries: 3
+  coinbase:
+    enabled: false
+    ohlc_interval_minutes: 1440
+    pairs: [BTC-USD, ETH-USD]
     retry_backoff_seconds: 2.0
     max_retries: 3
 

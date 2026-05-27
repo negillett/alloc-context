@@ -91,13 +91,21 @@ def build_market_context(conn: sqlite3.Connection, config) -> dict[str, Any]:
     return result
 
 
-def build_spot_market_assets(conn: sqlite3.Connection, spot) -> dict[str, Any]:
+def _spot_pair_to_symbol(pair: str) -> str:
+    if "-" in pair:
+        from alloccontext.ingest.coinbase_client import product_to_symbol
+
+        return product_to_symbol(pair)
     from alloccontext.ingest.kraken_client import pair_to_symbol
 
+    return pair_to_symbol(pair)
+
+
+def build_spot_market_assets(conn: sqlite3.Connection, spot) -> dict[str, Any]:
     assets: dict[str, Any] = {}
     interval = spot.ohlc_interval_minutes
     for pair in spot.pairs:
-        symbol = pair_to_symbol(pair)
+        symbol = _spot_pair_to_symbol(pair)
         rows = conn.execute(
             """
             SELECT bar_ts, close FROM market_bars

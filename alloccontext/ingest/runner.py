@@ -12,6 +12,7 @@ from alloccontext.ingest.etf_flows import refresh_etf_flows
 from alloccontext.ingest.fred import refresh_fred
 from alloccontext.ingest.fear_greed import refresh_fear_greed
 from alloccontext.ingest.kalshi import refresh_kalshi
+from alloccontext.ingest.coinbase_portfolio import refresh_coinbase
 from alloccontext.ingest.kraken_portfolio import refresh_kraken
 from alloccontext.ingest.macro_calendar import refresh_macro_calendar
 from alloccontext.store.db import record_ingest_run
@@ -34,6 +35,8 @@ def _run_source(
         result = refresh_fear_greed(conn, history_limit=horizon_days(config))
     elif source == "kraken":
         result = refresh_kraken(conn, config)
+    elif source == "coinbase":
+        result = refresh_coinbase(conn, config)
     elif source == "kalshi":
         result = refresh_kalshi(conn, config)
     elif source == "macro_calendar":

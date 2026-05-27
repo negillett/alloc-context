@@ -104,6 +104,24 @@ Read endpoints only:
 
 Stored tables: `portfolio_snapshots`, `market_bars`.
 
+## Coinbase contract
+
+Read endpoints only (Coinbase Advanced Trade / CDP JWT):
+
+- List accounts (balances)
+- Product price and candles for configured `pairs` (e.g. `BTC-USD`, `ETH-USD`)
+- No order placement or withdraw
+
+Env: `COINBASE_API_KEY` (full CDP key name) and `COINBASE_API_SECRET`
+(EC private key PEM; `\n` escapes in a single-line env value are expanded
+in code).
+
+Enable with `ingest.sources.coinbase: true` and `exchanges.coinbase.enabled:
+true`. Set `exchanges.primary: coinbase` when Coinbase should drive rollup
+market bars.
+
+Stored tables: same as Kraken (`portfolio_snapshots`, `market_bars`).
+
 ## Kalshi contract
 
 Read-only sentiment telemetry for hourly Kalshi above/below markets and CF Benchmarks
