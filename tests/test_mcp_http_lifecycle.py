@@ -34,3 +34,21 @@ def test_mcp_initialize_over_http(monkeypatch: pytest.MonkeyPatch) -> None:
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body.get("result", {}).get("serverInfo", {}).get("name") == "alloc-context"
+
+
+def test_health_includes_source_health(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("mcp")
+    from starlette.testclient import TestClient
+
+    from alloccontext.mcp.http import build_http_app
+
+    monkeypatch.setenv("ALLOC_CONTEXT_CONFIG", "config/config.example.yaml")
+    app = build_http_app(x402=False, config_path="config/config.example.yaml")
+
+    with TestClient(app) as client:
+        resp = client.get("/health")
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ok"] is True
+    assert "source_health" in body or "status_detail" in body

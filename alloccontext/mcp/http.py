@@ -25,7 +25,25 @@ from alloccontext.mcp.x402_config import (
 
 
 def _health(_: Any) -> JSONResponse:
-    return JSONResponse({"ok": True, "service": "alloc-context-mcp"})
+    payload: dict[str, Any] = {"ok": True, "service": "alloc-context-mcp"}
+    try:
+        from alloccontext.config import load_config
+        from alloccontext.store.db import connect
+        from alloccontext.store.status import ingest_status
+
+        config = load_config(None)
+        conn = connect(config.paths.db)
+        try:
+            status = ingest_status(conn)
+            payload["source_health"] = status.get("source_health")
+            payload["ingest_ok"] = all(
+                row.get("ok") for row in (status.get("source_health") or {}).values()
+            )
+        finally:
+            conn.close()
+    except OSError:
+        payload["status_detail"] = "database_unavailable"
+    return JSONResponse(payload)
 
 
 def _llms_txt(settings: X402Settings) -> PlainTextResponse:
