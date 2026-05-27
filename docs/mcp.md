@@ -54,10 +54,12 @@ exchanges: **Kraken** and **Coinbase** Advanced Trade (read-only).
 
 ## x402 pricing
 
-Default hosted price: **$0.02 USDC per call** on Base mainnet (`X402_PRICE_MCP`).
+Hosted MCP uses **per-call USDC on Base mainnet**:
 
-Typical ranges: **$0.01–0.05** for cached context and math;
-**$0.05–0.10** for live portfolio reads.
+| Call type | Default price | Env |
+|-----------|---------------|-----|
+| Cached context and math tools | **$0.02** | `X402_PRICE_MCP` |
+| Live portfolio or `freshness=live` | **$0.05** | `X402_PRICE_MCP_HEAVY` |
 
 Setup: [mcp-http.md](mcp-http.md). Discovery: [mcp-discovery.md](mcp-discovery.md).
 

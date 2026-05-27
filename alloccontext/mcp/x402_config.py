@@ -9,6 +9,10 @@ from alloccontext.mcp.bazaar import (
     public_mcp_url,
     resolve_public_base_url,
 )
+from alloccontext.mcp.x402_pricing import (
+    DEFAULT_MCP_PRICE_HEAVY,
+    build_mcp_dynamic_price,
+)
 from x402.extensions.bazaar import bazaar_resource_server_extension
 from x402.http import FacilitatorConfig, HTTPFacilitatorClient
 from x402.http.constants import DEFAULT_FACILITATOR_URL
@@ -28,6 +32,7 @@ class X402Settings:
     facilitator_url: str
     network: str
     mcp_price: str
+    mcp_price_heavy: str = DEFAULT_MCP_PRICE_HEAVY
     mcp_path: str = MCP_HTTP_PATH
 
 
@@ -39,6 +44,9 @@ def load_x402_settings(*, require_payment: bool = False) -> X402Settings:
     facilitator_url = os.environ.get("X402_FACILITATOR_URL", DEFAULT_FACILITATOR_URL).strip()
     network = os.environ.get("X402_NETWORK", DEFAULT_NETWORK).strip()
     mcp_price = os.environ.get("X402_PRICE_MCP", DEFAULT_MCP_PRICE).strip()
+    mcp_price_heavy = os.environ.get(
+        "X402_PRICE_MCP_HEAVY", DEFAULT_MCP_PRICE_HEAVY
+    ).strip()
     enabled = require_payment and bool(pay_to)
 
     return X402Settings(
@@ -47,6 +55,7 @@ def load_x402_settings(*, require_payment: bool = False) -> X402Settings:
         facilitator_url=facilitator_url,
         network=network,
         mcp_price=mcp_price,
+        mcp_price_heavy=mcp_price_heavy,
         mcp_path=os.environ.get("X402_MCP_PATH", MCP_HTTP_PATH).strip() or MCP_HTTP_PATH,
     )
 
@@ -93,7 +102,10 @@ def build_x402_routes(settings: X402Settings) -> dict[str, RouteConfig]:
     option = PaymentOption(
         scheme="exact",
         pay_to=settings.pay_to,
-        price=settings.mcp_price,
+        price=build_mcp_dynamic_price(
+            light_price=settings.mcp_price,
+            heavy_price=settings.mcp_price_heavy,
+        ),
         network=settings.network,
     )
     return {

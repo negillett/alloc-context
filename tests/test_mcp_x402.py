@@ -12,6 +12,7 @@ from alloccontext.mcp.x402_config import (
     cdp_facilitator_configured,
     load_x402_settings,
 )
+from alloccontext.mcp.x402_pricing import DEFAULT_MCP_PRICE_HEAVY
 
 
 def test_x402_disabled_without_flag(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -44,11 +45,13 @@ def test_x402_route_config() -> None:
         facilitator_url="https://x402.org/facilitator",
         network="eip155:84532",
         mcp_price=DEFAULT_MCP_PRICE,
+        mcp_price_heavy=DEFAULT_MCP_PRICE_HEAVY,
         mcp_path=MCP_HTTP_PATH,
     )
     routes = build_x402_routes(settings)
     assert f"POST {MCP_HTTP_PATH}" in routes
     assert routes[f"POST {MCP_HTTP_PATH}"].accepts[0].pay_to == "0xSeller"
+    assert callable(routes[f"POST {MCP_HTTP_PATH}"].accepts[0].price)
 
 
 def test_build_http_app_without_x402() -> None:
