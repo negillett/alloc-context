@@ -27,6 +27,7 @@ export X402_PAY_TO=0xYourWallet
 export X402_FACILITATOR_URL=https://x402.org/facilitator
 export X402_NETWORK=eip155:84532
 export X402_PRICE_MCP=$0.02
+export X402_PRICE_MCP_HEAVY=$0.05
 
 alloc-context mcp --transport http --x402
 ```
