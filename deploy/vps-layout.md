@@ -1,20 +1,25 @@
 # Example host layout
 
-Generic paths for optional self-hosting. Adjust to your environment.
+Generic paths for optional self-hosting with the operator split. Adjust to
+your environment.
 
 ```text
-/opt/alloc-context/
-  .venv/
-  config/config.yaml          # from config.example.yaml on first install
-  state/
-    alloccontext.db
-    briefs/
-      daily/
-      weekly/
-  deploy/
-    systemd/
+/opt/trading/
+  shared/.env                 # ALLOC_CONTEXT_* + operator secrets
+  alloc-context/
+    .venv/
+    config/config.yaml
+    state/alloccontext.db
+    deploy/systemd/
+  alloc-context-operator/
+    .venv/
+    config/config.yaml
+    state/operator.db
+    state/briefs/daily/
+    state/briefs/weekly/
 ```
 
-Secrets: environment file or `.env` on the host (mode 600), not in git.
+Secrets: shared environment file (mode 640, owned by service user), not in git.
 
-See [docs/self-hosting.md](../docs/self-hosting.md) and [vps-setup.md](vps-setup.md).
+See [docs/self-hosting.md](../docs/self-hosting.md), [vps-setup.md](vps-setup.md),
+and [alloc-context-operator setup](https://github.com/negillett/alloc-context-operator/blob/main/docs/setup.md).

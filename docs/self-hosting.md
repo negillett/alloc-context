@@ -18,18 +18,39 @@ See the [README](../README.md) quick start. You need your own API keys in
 Example layout:
 
 ```text
-/opt/alloc-context/          # git checkout or CI rsync target
-  config/config.yaml
-  state/alloccontext.db
-deploy/systemd/              # alloc-context-ingest.service / *.timer
+/opt/trading/
+  shared/.env                      # secrets for core + operator
+  alloc-context/                   # git checkout or CI rsync target
+    config/config.yaml
+    state/alloccontext.db
+  alloc-context-operator/          # briefs + alerts (separate repo)
+    config/config.yaml
+    state/operator.db
+deploy/systemd/                    # alloc-context-ingest.service / *.timer
 ```
 
 1. Copy `config/config.example.yaml` → `config/config.yaml`.
-2. Set secrets via environment or `.env` (Kraken read-only, optional feed
-   keys for ingest).
+2. Set secrets via environment or a shared `.env` (Kraken read-only, optional feed
+   keys for ingest). See [Shared environment](#shared-environment) below.
 3. Install ingest units from `deploy/systemd/`.
 4. Or run `deploy/remote-install.sh` on the host after rsync (creates venv,
    installs package, enables ingest timer).
+
+### Shared environment
+
+When core and [alloc-context-operator](https://github.com/negillett/alloc-context-operator)
+run on one host, point both at the same env file via `ALLOC_CONTEXT_ENV_FILE`
+at install time (default on our VPS: `/opt/trading/shared/.env`).
+
+| Variable | Example | Purpose |
+|----------|---------|---------|
+| `ALLOC_CONTEXT_CONFIG` | `/opt/trading/alloc-context/config/config.yaml` | Core config path |
+| `ALLOC_CONTEXT_DB` | `/opt/trading/alloc-context/state/alloccontext.db` | SQLite cache (overrides YAML) |
+
+Do **not** use legacy `MARKET_ANALYST_*` variables — see [migration.md](migration.md).
+
+Operator-specific keys (`OPENAI_API_KEY`, `RESEND_*`, `EMAIL_TO`) live in the
+same shared file; see the operator repo.
 
 Systemd units assume `WorkingDirectory` and `EnvironmentFile` paths you
 configure — edit the `.service` files or override with drop-ins for your layout.
@@ -61,6 +82,8 @@ Variables) for non-secret deploy paths:
 |----------|---------|---------|
 | `ALLOC_CONTEXT_REMOTE` | `/opt/trading/alloc-context` | Rsync + systemd install root |
 | `ALLOC_CONTEXT_ENV_FILE` | `/opt/trading/shared/.env` | systemd `EnvironmentFile` |
+
+Template: [deploy/shared.env.example](../deploy/shared.env.example).
 
 If unset, defaults are `${REMOTE}/.env` and `/opt/alloc-context`.
 
