@@ -3,20 +3,24 @@
 AllocContext is becoming an **agent-native allocation context API**: structured
 facts and rebalance math, discoverable via the x402 Bazaar, paid per call.
 
-Email briefs and optional self-host ingest remain an operator path. MCP is the
-product path.
+Today, email briefs and LLM synthesis live in the same repo as the facts
+engine. **Phase E** extracts them into a separate operator package. Until
+then, the operator path (cron + email) and the product path (MCP) share core
+rollup code but serve different audiences.
 
 ## Product split
 
 | Surface | Audience | Status |
 |---------|----------|--------|
-| CLI + systemd ingest | Operator self-host | Shipped |
-| Email briefs + band alerts | Operator self-host | Shipped |
 | **MCP server `alloc-context`** | Agents + developers | Shipped (stdio, Tier 1) |
 | **x402 paywall** | Agent wallets | Phase B |
 | **Bazaar listing** | Discovery | Phase C |
 | **Multi-exchange + BYOK portfolio** | Agents with exchange keys | Phase D |
-| **Optional BYOLLM narrative** | Agents with LLM keys | Phase D |
+| CLI + systemd ingest | Operator self-host | Shipped (moves to core package) |
+| Email briefs + band alerts + LLM synthesis | Operator (you) | Shipped → **Phase E extract** |
+
+Core MCP is **facts only, no LLM**. Agents narrate JSON with their host model;
+server-side synthesis is not additive to the paid API.
 
 ## MCP tools
 
@@ -40,16 +44,6 @@ self-host; hosted Phase B serves the same facts from server-side cache.
 Credentials are **pass-through only** — never stored server-side. Initial
 exchanges: **Kraken** (existing ingest) and **Coinbase** (Advanced Trade
 read-only). Unified response shape regardless of exchange.
-
-### Tier 3 — optional BYOLLM narrative (Phase D)
-
-| Tool / flag | Input | Output |
-|-------------|-------|--------|
-| `with_narrative=true` on context/brief tools | User LLM API key in request (OpenAI-compatible) | Facts JSON + generated prose |
-
-Default paid path stays **facts only, no LLM**. Narrative is opt-in; user pays
-their LLM provider directly. Agent host models can also narrate Tier 1 JSON
-without calling this path.
 
 ## x402 + Bazaar
 
@@ -105,53 +99,105 @@ Bazaar title:
       first-class MCP contract)
 - [ ] Optional server defaults via config for operator self-host
 
-**BYOLLM (optional)**
+**Richer deterministic fields (no LLM)**
 
-- [ ] `with_narrative` flag on selected tools
-- [ ] Pass-through LLM key + model in request; reuse `synthesize/` prompts
-- [ ] Clear separation: base x402 price = facts; narrative = user’s LLM cost
+- [ ] Structured regime / hint fields in ContextBundle where agents benefit
+- [ ] Explicit delta blocks for `prior_as_of` comparisons
 
 **Suggested PR slices**
 
 1. `exchange` config schema + Kraken refactor (no new exchange yet)
 2. Coinbase ingest + portfolio adapter
 3. MCP Tier 2 BYOK + `exchange` param
-4. BYOLLM opt-in path
+
+### Phase E — Operator package extraction
+
+Split **human email + LLM synthesis** from the public facts engine.
+
+**Moves to `alloc-context-operator` (depends on core)**
+
+- [ ] `brief/` — daily/weekly orchestration
+- [ ] `synthesize/` — LLM prompts, OpenAI, allocation advice prose
+- [ ] `deliver/` — Resend email, markdown render, alert delivery
+- [ ] `review/` — monthly forward-watch review
+- [ ] `predictions/` — forward watches extracted from brief prose (if kept)
+- [ ] CLI: `brief`, `review`, `alerts --email`
+- [ ] systemd brief/alert timers; optional meta-package for VPS
+
+**Stays in core (`alloc-context`)**
+
+- [ ] `ingest/`, `store/`, `rollup/`, `mcp/`, exchange adapters
+- [ ] Band **evaluation** math (alerts call core; delivery lives in operator)
+- [ ] Break `ingest/runner` → email alert coupling (ingest refreshes data only)
+
+**Install shape**
+
+```text
+pip install alloc-context[mcp]           # public product
+pip install alloc-context-operator     # private/ops; depends on alloc-context
+```
+
+### Final — public polish & orphan reset
+
+After Phases B–E:
+
+- [ ] Doc hygiene: drop migration scratch, slim README to product surface
+- [ ] Orphan reset → single clean public root commit
+- [ ] Flip repo public (if not already)
 
 ## Non-goals
 
-**Through Phase C (public v1)**
+**Core MCP (Phases B–D)**
 
-- Holding user exchange or LLM secrets server-side
-- LLM on the default paid call path
-- More than BTC/ETH/CASH in allocation math (Phase D keeps this unless explicitly expanded)
+- LLM on any paid MCP path (agents narrate Tier 1/2 JSON themselves)
+- Holding user exchange secrets server-side
+- BYOLLM / server-side narrative tools
+- More than BTC/ETH/CASH in allocation math unless explicitly expanded
 
 **Explicitly in scope for Phase D**
 
 - Multi-exchange **live** portfolio via BYOK (Kraken + Coinbase first)
-- Optional BYOLLM on opt-in tools only
+
+**Operator package (Phase E) — not public product**
+
+- LLM synthesis and email are for the VPS operator path only
+- Resend + OpenAI deps move to operator optional extras
 
 **Still out of scope (for now)**
 
 - Automated trade execution
 - Server-hosted custody or Agentic Wallets integration
-- Exotic asset universes (altcoins, perps, staking positions beyond spot cash/crypto split)
+- Exotic asset universes (altcoins, perps, staking beyond spot cash/crypto split)
 - Every exchange — prove Kraken + Coinbase adapter pattern first
 
 ## Repo layout (evolving)
 
+**Core (public after Phase E)**
+
 ```text
 alloccontext/
   mcp/
-    server.py       # MCP tool definitions
-    handlers.py     # tool implementations
+    server.py
+    handlers.py
   ingest/
-    kraken_*.py     # today
-    coinbase_*.py   # Phase D
-    exchange/       # shared portfolio + OHLC interface (Phase D)
+    kraken_*.py
+    coinbase_*.py      # Phase D
+    exchange/          # Phase D
   rollup/
-    portfolio.py    # exchange-agnostic portfolio context
-  synthesize/       # BYOLLM reuse in Phase D
+    portfolio.py
+    band.py
+    rebalance.py
+```
+
+**Operator (Phase E — separate package or private repo)**
+
+```text
+alloccontext_operator/   # or alloc-context-operator/
+  brief/
+  synthesize/
+  deliver/
+  review/
+  predictions/
 ```
 
 See [context-bundle.md](context-bundle.md) for the facts schema MCP tools expose.
