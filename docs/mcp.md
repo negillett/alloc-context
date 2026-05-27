@@ -21,11 +21,22 @@ This repo is **facts only** — agents narrate JSON with their own model.
 
 ### Tier 1 — cached context and math (no user keys)
 
+Shared optional args on context tools:
+
+| Arg | Tools | Default | Purpose |
+|-----|-------|---------|---------|
+| `assets` | `get_context_bundle`, `get_market_context` | `["BTC","ETH"]` | Filter market and ETF fields |
+| `target_pct` | `get_context_bundle` | server config | Override target weights for drift math |
+| `band` | `get_context_bundle`, `get_rebalance_plan` | server config / none | Drift band width (e.g. `0.15`) |
+
+Math tools require explicit `target_pct` and `band` (or use `get_context_bundle`
+for cached portfolio drift with optional overrides).
+
 | Tool | Input | Output |
 |------|-------|--------|
-| `get_market_context` | `scope`, optional `freshness` | Sentiment, macro, ETF, breadth, `as_of`, `age_seconds` |
-| `get_context_bundle` | `scope`, optional `freshness` | Full ContextBundle |
-| `get_rebalance_plan` | `allocation_pct`, `target_pct`, `nav_usd` | USD deltas and move lines |
+| `get_market_context` | `scope`, optional `freshness`, optional `assets` | Sentiment, macro, ETF, breadth, `market`, `as_of`, `age_seconds` |
+| `get_context_bundle` | `scope`, optional `freshness`, optional `assets`, optional `target_pct`, optional `band` | Full ContextBundle including `regime` hints |
+| `get_rebalance_plan` | `allocation_pct`, `target_pct`, `nav_usd`, optional `band` | USD deltas, move lines, optional `band_check` |
 | `check_allocation_band` | `allocation_pct`, `target_pct`, `band` | Drift, `outside_band`, `hint` |
 
 On a self-hosted install, `freshness=cached` reads the ingest SQLite DB.
@@ -36,7 +47,7 @@ Hosted endpoints serve the operator's ingested cache unless the client requests
 
 | Tool | Input | Output |
 |------|-------|--------|
-| `get_portfolio_state` | `exchange`, read-only credentials in request | NAV, allocation, drift |
+| `get_portfolio_state` | `exchange`, read-only credentials, optional `target_pct`, optional `band` | NAV, allocation, drift |
 
 Credentials are **pass-through only** — never stored server-side. Supported
 exchanges: **Kraken** and **Coinbase** Advanced Trade (read-only).

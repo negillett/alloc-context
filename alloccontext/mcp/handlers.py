@@ -16,7 +16,14 @@ from alloccontext.rollup.macro import build_macro_context
 from alloccontext.rollup.portfolio import build_market_context
 from alloccontext.rollup.rebalance import compute_rebalance_plan
 from alloccontext.rollup.sentiment import build_sentiment_context
+from alloccontext.mcp.assets import (
+    apply_assets_filter_to_bundle,
+    apply_assets_filter_to_market_payload,
+    filter_market_assets,
+    validate_view_assets,
+)
 from alloccontext.mcp.staleness import with_staleness
+from alloccontext.rollup.regime import build_regime_context
 from alloccontext.timeutil import utc_now
 
 _ASSETS = ("BTC", "ETH", "CASH")
@@ -43,6 +50,41 @@ def _ingest_summary(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _apply_allocation_targets(
+    portfolio: dict[str, Any],
+    config,
+    *,
+    target_pct: dict[str, float] | None,
+    band: float | None,
+) -> dict[str, Any]:
+    if not portfolio.get("available"):
+        return portfolio
+    if target_pct is None and band is None:
+        return portfolio
+
+    target = _normalize_pct(
+        target_pct
+        or portfolio.get("target_allocation_pct")
+        or dict(config.portfolio.target_allocations)
+    )
+    band_width = float(
+        band if band is not None else portfolio.get("band", config.portfolio.rebalance_band)
+    )
+    band_result = check_allocation_band(
+        portfolio.get("allocation_pct") or {},
+        target,
+        band_width,
+    )
+    updated = dict(portfolio)
+    updated["target_allocation_pct"] = target
+    updated["drift"] = band_result["drift"]
+    updated["rebalance_hint"] = band_result["hint"]
+    updated["outside_band"] = band_result["outside_band"]
+    updated["max_drift"] = band_result["max_drift"]
+    updated["band"] = band_width
+    return updated
+
+
 def get_context_bundle(
     conn: sqlite3.Connection,
     config,
@@ -50,7 +92,11 @@ def get_context_bundle(
     scope: Scope = "daily",
     freshness: Freshness = "cached",
     as_of: datetime | None = None,
+    assets: list[str] | None = None,
+    target_pct: dict[str, float] | None = None,
+    band: float | None = None,
 ) -> dict[str, Any]:
+    view_assets = validate_view_assets(assets)
     ingest_result: dict[str, Any] | None = None
     if freshness == "live":
         from alloccontext.ingest.runner import run_ingest
@@ -70,6 +116,24 @@ def get_context_bundle(
         as_of=now,
         save_snapshot=False,
     )
+    if target_pct is not None or band is not None:
+        bundle["portfolio"] = _apply_allocation_targets(
+            bundle.get("portfolio") or {},
+            config,
+            target_pct=target_pct,
+            band=band,
+        )
+        bundle["regime"] = build_regime_context(
+            portfolio=bundle["portfolio"],
+            sentiment=bundle.get("sentiment") or {},
+            delta=bundle.get("delta") or {},
+            prior_as_of=bundle.get("prior_as_of"),
+        )
+    bundle = apply_assets_filter_to_bundle(bundle, view_assets)
+    if target_pct is not None:
+        bundle["target_pct"] = _normalize_pct(target_pct)
+    if band is not None:
+        bundle["band"] = float(band)
     payload = with_staleness(bundle, as_of=now)
     payload["freshness"] = freshness
     if ingest_result is not None:
@@ -84,7 +148,9 @@ def get_market_context(
     scope: Scope = "daily",
     as_of: datetime | None = None,
     freshness: Freshness = "cached",
+    assets: list[str] | None = None,
 ) -> dict[str, Any]:
+    view_assets = validate_view_assets(assets)
     ingest_result: dict[str, Any] | None = None
     if freshness == "live":
         from alloccontext.ingest.runner import run_ingest
@@ -97,7 +163,7 @@ def get_market_context(
 
     sentiment = build_sentiment_context(conn, config, config.rollup, now=now)
     macro = build_macro_context(conn, config, now=now, scope=scope)
-    market = build_market_context(conn, config)
+    market = filter_market_assets(build_market_context(conn, config), view_assets)
 
     macro_subset: dict[str, Any]
     if macro.get("available"):
@@ -126,6 +192,7 @@ def get_market_context(
         {
             "scope": scope,
             "freshness": freshness,
+            "market": market,
             "sentiment": sentiment,
             "macro": macro_subset,
             "etf": etf_block,
@@ -133,6 +200,7 @@ def get_market_context(
         },
         as_of=now,
     )
+    payload = apply_assets_filter_to_market_payload(payload, view_assets)
     if ingest_result is not None:
         payload["ingest"] = _ingest_summary(ingest_result)
     return payload
@@ -144,24 +212,31 @@ def get_rebalance_plan(
     nav_usd: float,
     *,
     exchange: str = "kraken",
+    band: float | None = None,
     as_of: datetime | None = None,
 ) -> dict[str, Any]:
     now = (as_of or utc_now()).replace(microsecond=0)
     exchange_id = validate_exchange_id(exchange)
+    normalized_allocation = _normalize_pct(allocation_pct)
+    normalized_target = _normalize_pct(target_pct)
     plan = compute_rebalance_plan(
         float(nav_usd),
-        _normalize_pct(allocation_pct),
-        _normalize_pct(target_pct),
+        normalized_allocation,
+        normalized_target,
         exchange=exchange_id,
     )
-    return with_staleness(
-        {
-            "allocation_pct": _normalize_pct(allocation_pct),
-            "target_pct": _normalize_pct(target_pct),
-            **plan,
-        },
-        as_of=now,
-    )
+    body: dict[str, Any] = {
+        "allocation_pct": normalized_allocation,
+        "target_pct": normalized_target,
+        **plan,
+    }
+    if band is not None:
+        body["band_check"] = check_allocation_band(
+            normalized_allocation,
+            normalized_target,
+            float(band),
+        )
+    return with_staleness(body, as_of=now)
 
 
 def get_portfolio_state(

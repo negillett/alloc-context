@@ -16,9 +16,24 @@ fields here.
   "market": { },
   "sentiment": { },
   "macro": { },
-  "delta": { }
+  "delta": { },
+  "regime": { }
 }
 ```
+
+## regime
+
+Deterministic agent-facing hints synthesized from portfolio drift, sentiment,
+and delta. No LLM.
+
+| Field | Meaning |
+|-------|---------|
+| `summary` | Short combined hint line |
+| `hints[]` | Structured `{kind, code, text}` entries |
+| `allocation` | Drift band result (`hint`, `outside_band`, `max_drift`, `band`) |
+| `volatility` | Kalshi short-horizon volatility regime when available |
+| `sentiment` | Fear & Greed and Kalshi tape fields |
+| `comparison` | `prior_as_of`, `notable_shifts` when a prior snapshot exists |
 
 ## portfolio
 
