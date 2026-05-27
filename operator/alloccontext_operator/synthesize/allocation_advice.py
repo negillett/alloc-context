@@ -6,7 +6,7 @@ import os
 from typing import Any, Callable
 
 from alloccontext.rollup.rebalance import compute_rebalance_plan, format_rebalance_plan
-from alloccontext.synthesize.openai import ChatFn, openai_chat
+from alloccontext_operator.synthesize.openai import ChatFn, openai_chat
 
 logger = logging.getLogger(__name__)
 

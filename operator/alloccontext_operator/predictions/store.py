@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from typing import Any, Literal
 
-from alloccontext.predictions.extract import ForwardWatch
+from alloccontext_operator.predictions.extract import ForwardWatch
 from alloccontext.timeutil import utc_now_iso
 
 PredictionStatus = Literal["open", "hit", "miss", "partial", "expired"]

@@ -29,7 +29,7 @@ def test_resolve_config_prefers_local_yaml(tmp_path: Path, monkeypatch) -> None:
 
 
 def test_cli_brief_daily_stdout(capsys) -> None:
-    from alloccontext.__main__ import main
+    from alloccontext_operator.__main__ import main
 
     code = main(
         ["--config", "config/config.example.yaml", "brief", "daily", "--stdout"]

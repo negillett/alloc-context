@@ -4,11 +4,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
-from alloccontext.brief.archive import brief_archive_path
-from alloccontext.brief.runner import run_brief
-from alloccontext.deliver.email import email_configured, send_email
-from alloccontext.synthesize.brief import synthesize_brief_markdown
-from alloccontext.synthesize.prompts import build_user_prompt, system_prompt
+from alloccontext_operator.brief.archive import brief_archive_path
+from alloccontext_operator.brief.runner import run_brief
+from alloccontext_operator.deliver.email import email_configured, send_email
+from alloccontext_operator.synthesize.brief import synthesize_brief_markdown
+from alloccontext_operator.synthesize.prompts import build_user_prompt, system_prompt
 
 
 def _minimal_context(scope: str = "daily") -> dict:
@@ -91,7 +91,7 @@ def test_send_email_resend(monkeypatch, config) -> None:
         sent.update(kwargs)
         return {"provider": "resend", "id": "msg_123"}
 
-    monkeypatch.setattr("alloccontext.deliver.email.send_via_resend", fake_resend)
+    monkeypatch.setattr("alloccontext_operator.deliver.email.send_via_resend", fake_resend)
     result = send_email(
         subject="Test",
         body="Hello",
@@ -113,7 +113,7 @@ def test_send_email_renders_markdown(monkeypatch, config) -> None:
         sent.update(kwargs)
         return {"provider": "resend", "id": "msg_123"}
 
-    monkeypatch.setattr("alloccontext.deliver.email.send_via_resend", fake_resend)
+    monkeypatch.setattr("alloccontext_operator.deliver.email.send_via_resend", fake_resend)
     send_email(
         subject="Test",
         body="## Portfolio snapshot\n\nNAV **$10k**.",
@@ -176,7 +176,7 @@ def test_run_brief_email(config, tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("RESEND_FROM", "Analyst <onboarding@resend.dev>")
     monkeypatch.setenv("EMAIL_TO", "b@example.com")
 
-    with patch("alloccontext.brief.runner.send_email") as mock_send:
+    with patch("alloccontext_operator.brief.runner.send_email") as mock_send:
         mock_send.return_value = {"provider": "resend", "id": "msg_123"}
         result = run_brief(cfg, scope="daily", email=True)
 

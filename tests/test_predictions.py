@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from alloccontext.predictions.extract import extract_forward_watches
+from alloccontext_operator.predictions.extract import extract_forward_watches
 
 
 SAMPLE_BRIEF = """# Daily brief

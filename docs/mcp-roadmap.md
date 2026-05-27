@@ -116,19 +116,19 @@ Split **human email + LLM synthesis** from the public facts engine.
 
 **Moves to `alloc-context-operator` (depends on core)**
 
-- [ ] `brief/` — daily/weekly orchestration
-- [ ] `synthesize/` — LLM prompts, OpenAI, allocation advice prose
-- [ ] `deliver/` — Resend email, markdown render, alert delivery
-- [ ] `review/` — monthly forward-watch review
-- [ ] `predictions/` — forward watches extracted from brief prose (if kept)
-- [ ] CLI: `brief`, `review`, `alerts --email`
-- [ ] systemd brief/alert timers; optional meta-package for VPS
+- [x] `brief/` — daily/weekly orchestration
+- [x] `synthesize/` — LLM prompts, OpenAI, allocation advice prose
+- [x] `deliver/` — Resend email, markdown render, alert delivery
+- [x] `review/` — monthly forward-watch review
+- [x] `predictions/` — forward watches extracted from brief prose (if kept)
+- [x] CLI: `brief`, `review`, `alerts --email`
+- [x] systemd brief/alert timers; optional meta-package for VPS
 
 **Stays in core (`alloc-context`)**
 
-- [ ] `ingest/`, `store/`, `rollup/`, `mcp/`, exchange adapters
-- [ ] Band **evaluation** math (alerts call core; delivery lives in operator)
-- [ ] Break `ingest/runner` → email alert coupling (ingest refreshes data only)
+- [x] `ingest/`, `store/`, `rollup/`, `mcp/`, exchange adapters
+- [x] Band **evaluation** math (`alloccontext/alerts/policy.py`; delivery in operator)
+- [x] Break `ingest/runner` → email alert coupling (ingest refreshes data only)
 
 **Install shape**
 

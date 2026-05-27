@@ -4,8 +4,8 @@ import os
 from typing import Any
 
 from alloccontext.config import EmailConfig
-from alloccontext.deliver.render import render_markdown_email
-from alloccontext.deliver.resend import resend_api_key, send_via_resend
+from alloccontext_operator.deliver.render import render_markdown_email
+from alloccontext_operator.deliver.resend import resend_api_key, send_via_resend
 
 
 def _env_address(config: EmailConfig, *, kind: str) -> str | None:

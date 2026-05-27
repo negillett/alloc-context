@@ -26,11 +26,19 @@ deploy/systemd/              # alloc-context-*.service / *.timer
    keys, OpenAI for LLM briefs, Resend for email).
 3. Install units from `deploy/systemd/` and run
    `deploy/render-systemd-timers.py` to bake schedule from config.
-4. Or run `deploy/remote-install.sh` on the host after rsync (creates venv,
-   installs package, enables timers).
+4. Install the operator package for briefs and alerts:
+   `pip install -e operator/` (included in `deploy/remote-install.sh`).
+5. Or run `deploy/remote-install.sh` on the host after rsync (creates venv,
+   installs core + operator, enables timers).
 
 Systemd units assume `WorkingDirectory` and `EnvironmentFile` paths you
 configure — edit the `.service` files or override with drop-ins for your layout.
+
+| Timer | Service | Package |
+|-------|---------|---------|
+| Hourly `:00` | ingest | core (`python -m alloccontext ingest`) |
+| Hourly `:10` | band alerts | operator (`python -m alloccontext_operator alerts --email`) |
+| Daily / weekly | briefs | operator (`python -m alloccontext_operator brief …`) |
 
 ## CI deploy (maintainer)
 

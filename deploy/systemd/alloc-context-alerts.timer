@@ -1,0 +1,10 @@
+[Unit]
+Description=AllocContext hourly band alerts
+Requires=alloc-context-alerts.service
+
+[Timer]
+OnCalendar=*-*-* *:10:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from alloccontext.deliver.render import markdown_to_html, markdown_to_plain
+from alloccontext_operator.deliver.render import markdown_to_html, markdown_to_plain
 
 
 SAMPLE_BRIEF = """# Daily brief

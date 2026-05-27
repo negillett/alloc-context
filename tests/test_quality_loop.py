@@ -5,11 +5,12 @@ from dataclasses import replace
 from datetime import datetime, timezone
 from unittest.mock import patch
 
-from alloccontext.brief.runner import run_brief
-from alloccontext.deliver.alerts import check_alerts, evaluate_rebalance_alert
-from alloccontext.predictions.extract import ForwardWatch
-from alloccontext.predictions.store import list_predictions, save_predictions
-from alloccontext.review.monthly import run_monthly_review
+from alloccontext.alerts.policy import evaluate_rebalance_alert
+from alloccontext_operator.brief.runner import run_brief
+from alloccontext_operator.deliver.alerts import check_alerts
+from alloccontext_operator.predictions.extract import ForwardWatch
+from alloccontext_operator.predictions.store import list_predictions, save_predictions
+from alloccontext_operator.review.monthly import run_monthly_review
 from alloccontext.store.db import connect
 
 
@@ -59,9 +60,9 @@ def test_check_alerts_delivers_when_enabled(config, conn, monkeypatch) -> None:
     monkeypatch.setenv("RESEND_FROM", "Analyst <onboarding@resend.dev>")
     monkeypatch.setenv("EMAIL_TO", "b@example.com")
 
-    with patch("alloccontext.deliver.alerts.build_portfolio_context") as mock_portfolio:
+    with patch("alloccontext_operator.deliver.alerts.build_portfolio_context") as mock_portfolio:
         mock_portfolio.return_value = _portfolio_out_of_band()
-        with patch("alloccontext.deliver.alerts.send_email") as mock_send:
+        with patch("alloccontext_operator.deliver.alerts.send_email") as mock_send:
             mock_send.return_value = {"provider": "resend", "id": "msg_123"}
             result = check_alerts(conn, cfg, email=True, stdout=False)
 
@@ -85,7 +86,7 @@ def test_run_brief_logs_predictions(config, tmp_path, capsys) -> None:
     )
     as_of = datetime(2026, 5, 21, 12, 0, tzinfo=timezone.utc)
 
-    with patch("alloccontext.brief.runner.synthesize_brief_markdown", return_value=body):
+    with patch("alloccontext_operator.brief.runner.synthesize_brief_markdown", return_value=body):
         result = run_brief(cfg, scope="daily", stdout=True, as_of=as_of)
 
     assert result["prediction_count"] == 1
@@ -263,7 +264,7 @@ def test_check_alerts_logs_suppressed_cooldown(config, conn) -> None:
             alerts=replace(config.deliver.alerts, enabled=True),
         ),
     )
-    with patch("alloccontext.deliver.alerts.build_portfolio_context") as mock_portfolio:
+    with patch("alloccontext_operator.deliver.alerts.build_portfolio_context") as mock_portfolio:
         mock_portfolio.return_value = _portfolio_out_of_band()
         first = check_alerts(conn, cfg, email=False, stdout=True)
         second = check_alerts(conn, cfg, email=False, stdout=False)

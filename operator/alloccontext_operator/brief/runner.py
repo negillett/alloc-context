@@ -4,13 +4,13 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from alloccontext.brief.archive import write_brief_archive
-from alloccontext.deliver.email import email_configured, send_email
-from alloccontext.predictions.extract import extract_forward_watches
-from alloccontext.predictions.store import save_predictions
 from alloccontext.rollup.context import build_context_bundle
 from alloccontext.store.db import connect
-from alloccontext.synthesize.brief import synthesize_brief_markdown
+from alloccontext_operator.brief.archive import write_brief_archive
+from alloccontext_operator.deliver.email import email_configured, send_email
+from alloccontext_operator.predictions.extract import extract_forward_watches
+from alloccontext_operator.predictions.store import save_predictions
+from alloccontext_operator.synthesize.brief import synthesize_brief_markdown
 
 Scope = Literal["daily", "weekly"]
 

@@ -33,6 +33,7 @@ fi
 
 chown -R trading:trading "${REMOTE}/.venv" "${REMOTE}/config" "${REMOTE}/state"
 "${PIP}" install -e "${REMOTE}" -q
+"${PIP}" install -e "${REMOTE}/operator" -q
 chown -R trading:trading "${REMOTE}"
 
 "${PY}" "${REMOTE}/deploy/render-systemd-timers.py" \
@@ -58,6 +59,8 @@ install_systemd_unit() {
 for unit in \
   alloc-context-ingest.service \
   alloc-context-ingest.timer \
+  alloc-context-alerts.service \
+  alloc-context-alerts.timer \
   alloc-context-daily-brief.service \
   alloc-context-daily-brief.timer \
   alloc-context-weekly-brief.service \
@@ -89,6 +92,7 @@ _enable_timer() {
 }
 
 _enable_timer alloc-context-ingest.timer
+_enable_timer alloc-context-alerts.timer
 _enable_timer alloc-context-daily-brief.timer
 _enable_timer alloc-context-weekly-brief.timer
 

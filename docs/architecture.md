@@ -2,25 +2,36 @@
 
 ## Purpose
 
-**AllocContext** — one pipeline from **raw market facts** to **human briefs**
-and (planned) **agent MCP tools**. Exchange APIs and third-party feeds are
-**data sources only** — no order placement, no gate authority, no bot shadow
-modes.
+**AllocContext** — deterministic market facts, portfolio rollups, and MCP tools
+for agents. Exchange APIs and third-party feeds are **data sources only** — no
+order placement, no gate authority, no bot shadow modes.
 
-Agent-facing MCP + x402 plan: [mcp-roadmap.md](mcp-roadmap.md).
+**AllocContext Operator** (separate package) — email briefs, band alerts, and
+LLM synthesis for self-hosted operators. See [mcp-roadmap.md](mcp-roadmap.md).
+
+Agent-facing MCP + x402: [mcp-roadmap.md](mcp-roadmap.md).
 
 ## Pipeline
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
-│                         alloc-context                            │
+│                    alloc-context (core)                          │
 ├──────────────────────────────────────────────────────────────────┤
 │  ingest/          Scheduled pulls → normalized rows               │
 │  store/           SQLite append-only snapshots                    │
 │  rollup/          ContextBundle (deterministic, reproducible)     │
+│  alerts/          Band evaluation policy (no delivery)            │
+│  mcp/             Agent tools + optional x402 HTTP                  │
+└──────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────┐
+│              alloc-context-operator (self-host ops)               │
+├──────────────────────────────────────────────────────────────────┤
 │  synthesize/      LLM prose from ContextBundle only               │
 │  brief/           daily + weekly orchestration                    │
-│  deliver/         Email, stdout, archived markdown                │
+│  deliver/         Email, stdout, archived markdown, alert send    │
+│  review/          Monthly forward-watch review                    │
+│  predictions/     Forward watches extracted from brief prose      │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -30,8 +41,9 @@ Agent-facing MCP + x402 plan: [mcp-roadmap.md](mcp-roadmap.md).
 |-------|------|----------------|
 | Ingest | No | No |
 | Rollup | No | No |
-| Synthesize | Yes (narrative only) | No |
-| Deliver | No | No |
+| Synthesize (operator) | Yes (narrative only) | No |
+| Deliver (operator) | No | No |
+| MCP (core) | No | No |
 
 ## Data horizon
 
@@ -57,7 +69,7 @@ Sections:
 - `macro` — calendar events past 24h / next 7d, ETF flows when enabled
 - `delta` — changes since last daily brief
 
-## Daily vs weekly
+## Daily vs weekly (operator)
 
 | | Daily | Weekly |
 |---|--------|--------|
@@ -65,11 +77,15 @@ Sections:
 | Length | Short (email-friendly) | Longer synthesis |
 | Archive | `state/briefs/daily/YYYY-MM-DD.md` | `state/briefs/weekly/YYYY-Www.md` |
 
-## Alerts
+## Alerts (operator)
 
-Optional threshold notifications (allocation band breach) reuse ingest +
-rollup; delivery policy lives in `deliver/alerts.py`. Scheduled briefs always
-send; alerts respect cooldowns (`min_hours_between`, `max_per_7d`, `dedupe_hours`).
+Optional threshold notifications (allocation band breach) use core rollup +
+`alloccontext/alerts/policy.py` for evaluation; delivery lives in
+`alloccontext_operator/deliver/alerts.py`. Ingest refreshes data only — a
+separate systemd timer runs alerts on schedule.
+
+Scheduled briefs always send; alerts respect cooldowns (`min_hours_between`,
+`max_per_7d`, `dedupe_hours`).
 
 Enable in config:
 
@@ -81,23 +97,23 @@ deliver:
       rebalance_band: true
 ```
 
-After each ingest, band breach triggers an email when policy allows. The band
-uses `portfolio.rebalance_band` (default ±15% drift vs target).
+The band uses `portfolio.rebalance_band` (default ±15% drift vs target).
 
-## Prediction log
+## Prediction log (operator)
 
 Daily and weekly briefs include a **Forward watches** section with bullets:
 
 `- IF [condition] | WATCH [what to monitor] | BY [timeframe]`
 
 Parsed watches are stored in `brief_predictions`. Run
-`python -m alloccontext review monthly` to score them against current facts
-(optional `--apply` to persist LLM scores).
+`python -m alloccontext_operator review monthly` to score them against current
+facts (optional `--apply` to persist LLM scores).
 
 ## Optional self-hosting
 
-Linux + systemd timers for scheduled ingest and email briefs are documented in
-[self-hosting.md](self-hosting.md). Not required for MCP consumers.
+Linux + systemd timers for scheduled ingest (core) and email briefs/alerts
+(operator) are documented in [self-hosting.md](self-hosting.md). Not required
+for MCP consumers.
 
 ## Non-goals
 

@@ -4,8 +4,8 @@ import logging
 import os
 from typing import Any, Callable
 
-from alloccontext.synthesize.openai import ChatFn, openai_chat
-from alloccontext.synthesize.prompts import build_user_prompt, system_prompt
+from alloccontext_operator.synthesize.openai import ChatFn, openai_chat
+from alloccontext_operator.synthesize.prompts import build_user_prompt, system_prompt
 
 logger = logging.getLogger(__name__)
 

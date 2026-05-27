@@ -25,6 +25,7 @@ git clone git@github.com:negillett/alloc-context.git
 cd alloc-context
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
+pip install -e operator/
 cp .env.example .env          # fill locally; never commit
 cp config/config.example.yaml config/config.yaml
 
@@ -46,10 +47,10 @@ CLI entry point: `alloc-context` (same as `python -m alloccontext`).
 | Command | Purpose |
 |---------|---------|
 | `python -m alloccontext rollup --scope daily --stdout` | ContextBundle JSON (facts) |
-| `python -m alloccontext alerts --stdout` | Allocation band check |
 | `python -m alloccontext ingest` | Pull configured sources → SQLite |
-| `python -m alloccontext brief daily --stdout` | Brief with optional LLM narrative |
 | `python -m alloccontext status` | Ingest freshness, DB path |
+| `python -m alloccontext_operator alerts --stdout` | Allocation band alert (operator) |
+| `python -m alloccontext_operator brief daily --stdout` | Brief with optional LLM narrative |
 
 ## Documentation
 

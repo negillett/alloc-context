@@ -5,10 +5,10 @@ import sqlite3
 from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 
-from alloccontext.deliver.email import email_configured, send_email
-from alloccontext.predictions.store import list_predictions, update_prediction_status
 from alloccontext.rollup.context import build_context_bundle
-from alloccontext.synthesize.openai import openai_chat
+from alloccontext_operator.deliver.email import email_configured, send_email
+from alloccontext_operator.predictions.store import list_predictions, update_prediction_status
+from alloccontext_operator.synthesize.openai import openai_chat
 
 ReviewFn = Callable[..., str]
 

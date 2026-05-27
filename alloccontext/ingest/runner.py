@@ -4,7 +4,6 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Any
 
-from alloccontext.deliver.alerts import check_alerts
 from alloccontext.horizon import horizon_days
 from alloccontext.ingest.coingecko import refresh_coingecko
 from alloccontext.ingest.coinmarketcap import refresh_coinmarketcap
@@ -96,17 +95,14 @@ def run_ingest(
             errors[source] = str(result.get("error") or "failed")
 
     pruned: dict[str, int] = {}
-    alerts: dict[str, Any] = {"skipped": True, "reason": "dry_run"}
     if not dry_run:
         pruned = prune_to_horizon(conn, config)
-        alerts = check_alerts(conn, config, email=True, stdout=False)
 
     return {
         "counts": counts,
         "results": results,
         "errors": errors,
         "pruned": pruned,
-        "alerts": alerts,
         "dry_run": dry_run,
         "ok": not errors,
         "horizon_days": horizon_days(config),

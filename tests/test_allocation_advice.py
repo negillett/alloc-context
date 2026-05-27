@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from unittest.mock import patch
 
-from alloccontext.synthesize.allocation_advice import (
+from alloccontext_operator.synthesize.allocation_advice import (
     fallback_allocation_advice,
     synthesize_allocation_advice,
 )
@@ -106,7 +106,7 @@ def test_synthesize_allocation_advice_falls_back_on_llm_error(config, monkeypatc
 
 
 def test_check_alerts_email_includes_allocation_advice(config, conn, monkeypatch) -> None:
-    from alloccontext.deliver.alerts import check_alerts
+    from alloccontext_operator.deliver.alerts import check_alerts
 
     cfg = replace(
         config,
@@ -122,7 +122,7 @@ def test_check_alerts_email_includes_allocation_advice(config, conn, monkeypatch
     monkeypatch.setenv("RESEND_FROM", "Analyst <onboarding@resend.dev>")
     monkeypatch.setenv("EMAIL_TO", "b@example.com")
 
-    with patch("alloccontext.deliver.alerts.build_portfolio_context") as mock_portfolio:
+    with patch("alloccontext_operator.deliver.alerts.build_portfolio_context") as mock_portfolio:
         mock_portfolio.return_value = {
             "available": True,
             "nav_usd": 10000,
@@ -133,10 +133,10 @@ def test_check_alerts_email_includes_allocation_advice(config, conn, monkeypatch
             "rebalance_hint": "consider_rebalance",
         }
         with patch(
-            "alloccontext.deliver.alerts.synthesize_allocation_advice",
+            "alloccontext_operator.deliver.alerts.synthesize_allocation_advice",
             return_value="Consider shifting toward BTC 35%, ETH 15%, Cash 50%.",
         ):
-            with patch("alloccontext.deliver.alerts.send_email") as mock_send:
+            with patch("alloccontext_operator.deliver.alerts.send_email") as mock_send:
                 mock_send.return_value = {"provider": "resend", "id": "msg_123"}
                 result = check_alerts(conn, cfg, email=True, stdout=False)
 

@@ -4,11 +4,8 @@ import argparse
 import json
 import sys
 
-from alloccontext.brief.runner import run_brief
 from alloccontext.config import load_config
-from alloccontext.deliver.alerts import check_alerts
 from alloccontext.ingest.runner import run_ingest
-from alloccontext.review.monthly import run_monthly_review
 from alloccontext.rollup.context import build_context_bundle
 from alloccontext.store.db import SCHEMA_VERSION, connect
 from alloccontext.store.status import ingest_status
@@ -21,25 +18,6 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     conn.close()
     print(json.dumps(result, indent=2))
     return 0 if result["ok"] else 1
-
-
-def cmd_brief(args: argparse.Namespace) -> int:
-    config = load_config(args.config)
-    if not args.stdout and not args.email:
-        args.stdout = True
-    try:
-        result = run_brief(
-            config,
-            scope=args.period,
-            stdout=args.stdout,
-            email=args.email,
-        )
-    except RuntimeError as exc:
-        print(json.dumps({"ok": False, "error": str(exc)}), file=sys.stderr)
-        return 1
-    if not args.stdout:
-        print(json.dumps(result, indent=2))
-    return 0
 
 
 def cmd_rollup(args: argparse.Namespace) -> int:
@@ -77,44 +55,6 @@ def cmd_status(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_review(args: argparse.Namespace) -> int:
-    config = load_config(args.config)
-    if not args.stdout and not args.email:
-        args.stdout = True
-    conn = connect(config.paths.db)
-    try:
-        result = run_monthly_review(
-            conn,
-            config,
-            month=args.month,
-            stdout=args.stdout,
-            email=args.email,
-            apply=args.apply,
-        )
-    except RuntimeError as exc:
-        print(json.dumps({"ok": False, "error": str(exc)}), file=sys.stderr)
-        return 1
-    finally:
-        conn.close()
-    if not args.stdout:
-        print(json.dumps(result, indent=2))
-    return 0
-
-
-def cmd_alerts(args: argparse.Namespace) -> int:
-    config = load_config(args.config)
-    conn = connect(config.paths.db)
-    result = check_alerts(
-        conn,
-        config,
-        email=args.email,
-        stdout=args.stdout or not args.email,
-    )
-    conn.close()
-    print(json.dumps(result, indent=2))
-    return 0 if result.get("ok") else 1
-
-
 def cmd_mcp(args: argparse.Namespace) -> int:
     if args.transport == "http":
         from alloccontext.mcp.http import run_http
@@ -141,12 +81,6 @@ def main(argv: list[str] | None = None) -> int:
     ingest_p.add_argument("--dry-run", action="store_true")
     ingest_p.set_defaults(func=cmd_ingest)
 
-    brief_p = sub.add_parser("brief", help="Build and deliver a market brief")
-    brief_p.add_argument("period", choices=["daily", "weekly"])
-    brief_p.add_argument("--stdout", action="store_true")
-    brief_p.add_argument("--email", action="store_true", help="Send brief via email")
-    brief_p.set_defaults(func=cmd_brief)
-
     rollup_p = sub.add_parser("rollup", help="Build ContextBundle JSON")
     rollup_p.add_argument("--scope", choices=["daily", "weekly"], default="daily")
     rollup_p.add_argument("--stdout", action="store_true")
@@ -154,28 +88,6 @@ def main(argv: list[str] | None = None) -> int:
 
     status_p = sub.add_parser("status", help="Show ingest and brief history")
     status_p.set_defaults(func=cmd_status)
-
-    review_p = sub.add_parser("review", help="Review forward watches and brief quality")
-    review_sub = review_p.add_subparsers(dest="review_kind", required=True)
-    monthly_p = review_sub.add_parser("monthly", help="Monthly forward-watch review")
-    monthly_p.add_argument(
-        "--month",
-        default=None,
-        help="YYYY-MM (default: previous calendar month)",
-    )
-    monthly_p.add_argument("--stdout", action="store_true")
-    monthly_p.add_argument("--email", action="store_true")
-    monthly_p.add_argument(
-        "--apply",
-        action="store_true",
-        help="Persist LLM prediction scores to the database",
-    )
-    monthly_p.set_defaults(func=cmd_review)
-
-    alerts_p = sub.add_parser("alerts", help="Evaluate threshold alerts")
-    alerts_p.add_argument("--stdout", action="store_true")
-    alerts_p.add_argument("--email", action="store_true")
-    alerts_p.set_defaults(func=cmd_alerts)
 
     mcp_p = sub.add_parser("mcp", help="Run MCP server (stdio or HTTP)")
     mcp_p.add_argument(
