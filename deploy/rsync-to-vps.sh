@@ -56,7 +56,7 @@ rsync -avz --delete \
   -e "ssh -i ${SSH_KEY} -o IdentitiesOnly=yes" \
   "${REPO_ROOT}/" "${USER}@${VPS_HOST}:${REMOTE}/"
 
-echo "==> pip install -e and enable systemd"
+echo "==> pip install -e, enable systemd, restart MCP"
 ssh -i "${SSH_KEY}" -o IdentitiesOnly=yes "${USER}@${VPS_HOST}" \
   "DEPLOYED_SHA=${LOCAL_SHA} ALLOC_CONTEXT_REMOTE=${REMOTE} bash -s" \
   < "${REPO_ROOT}/deploy/remote-install.sh"

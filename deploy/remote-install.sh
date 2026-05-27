@@ -42,7 +42,8 @@ install_systemd_unit() {
 
 for unit in \
   alloc-context-ingest.service \
-  alloc-context-ingest.timer; do
+  alloc-context-ingest.timer \
+  alloc-context-mcp-http.service; do
   install_systemd_unit "${unit}"
 done
 
@@ -69,9 +70,31 @@ _enable_timer() {
 
 _enable_timer alloc-context-ingest.timer
 
+systemctl enable alloc-context-mcp-http.service
+systemctl restart alloc-context-mcp-http.service
+
+# Operator installs this unit; restart when present so both MCPs load new code.
+if systemctl cat alloc-context-mcp-internal.service &>/dev/null; then
+  systemctl restart alloc-context-mcp-internal.service
+fi
+
+if curl -sf -o /dev/null http://127.0.0.1:8000/health; then
+  echo "public MCP ok: http://127.0.0.1:8000/health"
+else
+  echo "warning: public MCP health check failed on :8000" >&2
+fi
+
+if curl -sf -o /dev/null \
+  -H "Accept: application/json" \
+  -H "Content-Type: application/json" \
+  -X POST http://127.0.0.1:8001/mcp \
+  -d '{"jsonrpc":"2.0","method":"initialize","params":{},"id":1}'; then
+  echo "internal MCP ok: http://127.0.0.1:8001/mcp"
+fi
+
 if [[ -n "${DEPLOYED_SHA:-}" ]]; then
   printf '%s\n' "${DEPLOYED_SHA}" > "${REMOTE}/.deployed-sha"
 fi
 
 echo "remote install ok: ${REMOTE}"
-echo "alloc-context ingest timer enabled"
+echo "alloc-context ingest timer enabled; MCP services restarted"

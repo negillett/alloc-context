@@ -21,9 +21,23 @@ def test_remote_install_avoids_restarting_active_timers() -> None:
     assert "is-active --quiet" in text
 
 
-def test_core_deploy_installs_ingest_only() -> None:
+def test_core_deploy_installs_ingest_and_mcp_http() -> None:
     text = (REPO_ROOT / "deploy/remote-install.sh").read_text()
     install_block = text.split("for unit in")[1].split("done")[0]
     assert "alloc-context-ingest.service" in install_block
+    assert "alloc-context-mcp-http.service" in install_block
     assert "daily-brief" not in install_block
     assert "alerts.timer" not in install_block
+
+
+def test_remote_install_restarts_mcp_services() -> None:
+    text = (REPO_ROOT / "deploy/remote-install.sh").read_text()
+    assert "systemctl restart alloc-context-mcp-http.service" in text
+    assert "alloc-context-mcp-internal.service" in text
+    assert "8000/health" in text
+
+
+def test_mcp_http_systemd_unit() -> None:
+    text = (REPO_ROOT / "deploy/systemd/alloc-context-mcp-http.service").read_text()
+    assert "--port 8000" in text
+    assert "--x402" in text

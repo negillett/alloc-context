@@ -26,7 +26,7 @@ Example layout:
   alloc-context-operator/          # briefs + alerts (separate repo)
     config/config.yaml
     state/operator.db
-deploy/systemd/                    # alloc-context-ingest.service / *.timer
+deploy/systemd/                    # ingest timer + public MCP HTTP unit
 ```
 
 1. Copy `config/config.example.yaml` → `config/config.yaml`.
@@ -34,7 +34,8 @@ deploy/systemd/                    # alloc-context-ingest.service / *.timer
    keys for ingest). See [Shared environment](#shared-environment) below.
 3. Install ingest units from `deploy/systemd/`.
 4. Or run `deploy/remote-install.sh` on the host after rsync (creates venv,
-   installs package, enables ingest timer).
+   installs package, enables ingest timer, restarts public MCP and internal
+   MCP when the operator unit is present).
 
 ### Shared environment
 
