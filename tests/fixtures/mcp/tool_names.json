@@ -1,0 +1,10 @@
+[
+  "get_market_context",
+  "get_context_bundle",
+  "get_rebalance_plan",
+  "get_portfolio_state",
+  "check_allocation_band",
+  "get_context_at",
+  "get_context_delta",
+  "check_allocation_bands"
+]

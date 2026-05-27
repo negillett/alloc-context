@@ -15,6 +15,9 @@ from alloccontext.mcp.x402_pricing import (
 BASE_MAINNET = "eip155:8453"
 BASE_SEPOLIA = "eip155:84532"
 DEFAULT_ACCEPTED_STABLES = "USDC,EURC"
+# When env parses to no symbols (e.g. X402_ACCEPTED_STABLES=""), discovery and
+# payment routes both use this list — not dynamic $ pricing.
+FALLBACK_ACCEPTED_STABLES = ("USDC",)
 
 
 @dataclass(frozen=True)
@@ -70,8 +73,14 @@ def parse_accepted_stable_symbols(raw: str | None) -> tuple[str, ...]:
     return tuple(part.strip().upper() for part in value.split(",") if part.strip())
 
 
+def effective_accepted_stable_symbols(symbols: tuple[str, ...]) -> tuple[str, ...]:
+    """Non-empty symbol list for routes and discovery; USDC when parse yields none."""
+    return symbols if symbols else FALLBACK_ACCEPTED_STABLES
+
+
 def load_accepted_stable_symbols() -> tuple[str, ...]:
-    return parse_accepted_stable_symbols(os.environ.get("X402_ACCEPTED_STABLES"))
+    raw = os.environ.get("X402_ACCEPTED_STABLES")
+    return effective_accepted_stable_symbols(parse_accepted_stable_symbols(raw))
 
 
 def stables_for_network(
