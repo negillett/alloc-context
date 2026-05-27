@@ -73,7 +73,7 @@ from `X402_PAY_TO`).
 | Value | Behavior |
 |-------|----------|
 | `cached` (default) | Read from SQLite ingest DB |
-| `live` | Run full ingest, then rollup (needs operator API keys on host) |
+| `live` | Run full ingest, then rollup (needs ingest API keys on the host) |
 
 ## Entry points
 

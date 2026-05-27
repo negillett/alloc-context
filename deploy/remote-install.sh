@@ -47,12 +47,12 @@ for unit in \
 done
 
 # Disable core brief timers (briefs run from alloc-context-operator).
-STALE_UNITS=(
+CORE_BRIEF_TIMERS=(
   alloc-context-daily-brief.timer
   alloc-context-weekly-brief.timer
   alloc-context-alerts.timer
 )
-for unit in "${STALE_UNITS[@]}"; do
+for unit in "${CORE_BRIEF_TIMERS[@]}"; do
   systemctl disable --now "${unit}" 2>/dev/null || true
 done
 

@@ -33,7 +33,7 @@ exchanges:
     assert spot.pairs == ["BTC-USD"]
 
 
-def test_legacy_kraken_block_without_exchanges(tmp_path) -> None:
+def test_top_level_kraken_block_without_exchanges(tmp_path) -> None:
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(
         """

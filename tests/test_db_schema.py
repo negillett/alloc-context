@@ -31,7 +31,7 @@ def _v7_db(path: Path) -> None:
     conn.close()
 
 
-def test_migrate_v7_copies_brief_archive_to_context_snapshots() -> None:
+def test_schema_v7_copies_archived_rows_to_context_snapshots() -> None:
     db_path = Path(tempfile.mkdtemp()) / "v7.db"
     _v7_db(db_path)
 
@@ -50,7 +50,7 @@ def test_migrate_v7_copies_brief_archive_to_context_snapshots() -> None:
     assert rows[1]["scope"] == "weekly"
 
 
-def test_migrate_v7_is_idempotent_on_conflict() -> None:
+def test_schema_v7_is_idempotent_on_conflict() -> None:
     db_path = Path(tempfile.mkdtemp()) / "v7.db"
     _v7_db(db_path)
 

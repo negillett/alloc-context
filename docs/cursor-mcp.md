@@ -1,6 +1,6 @@
 # Cursor MCP setup
 
-Use AllocContext Tier 1 tools in Cursor over stdio.
+Use AllocContext cached context tools in Cursor over stdio.
 
 ## Install
 

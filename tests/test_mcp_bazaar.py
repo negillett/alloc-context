@@ -13,7 +13,7 @@ from alloccontext.mcp.bazaar import (
 from alloccontext.mcp.x402_config import MCP_HTTP_PATH, build_x402_routes, X402Settings
 
 
-def test_mcp_tool_specs_cover_tier1_tools() -> None:
+def test_mcp_tool_specs_cover_all_tools() -> None:
     names = {spec["tool_name"] for spec in mcp_tool_specs()}
     assert names == {
         "get_market_context",

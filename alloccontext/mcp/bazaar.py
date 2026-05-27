@@ -51,7 +51,8 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
         "description": (
             "Fused market backdrop for BTC/ETH allocation: Fear & Greed, Kalshi "
             "sentiment, macro calendar, FRED indicators, ETF flows, and breadth. "
-            "Use freshness=cached for hosted cache or freshness=live to refresh."
+            "Use freshness=cached for hosted cache; freshness=live runs ingest "
+            "first (requires ingest API keys on the host)."
         ),
         "input_schema": {
             "type": "object",
@@ -66,7 +67,7 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
                     "enum": ["cached", "live"],
                     "description": (
                         "cached reads the ingest DB; live runs ingest first "
-                        "(requires operator API keys on the host)."
+                        "(requires ingest API keys on the host)."
                     ),
                 },
                 "assets": _ASSET_FILTER_SCHEMA,
@@ -189,7 +190,7 @@ _MCP_TOOLS: tuple[dict[str, Any], ...] = (
     {
         "tool_name": "get_portfolio_state",
         "description": (
-            "Tier 2 BYOK live portfolio: NAV, BTC/ETH/CASH allocation, drift vs "
+            "Live portfolio read: NAV, BTC/ETH/CASH allocation, drift vs "
             "target, and band hint. Pass read-only kraken or coinbase credentials "
             "in the request; never stored server-side."
         ),

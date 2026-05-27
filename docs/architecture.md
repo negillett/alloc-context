@@ -65,7 +65,7 @@ the operator repository, not this one.
 ## Non-goals
 
 - Automated trade execution
-- Holding user exchange secrets on a shared MCP server (BYOK in request only)
+- Holding user exchange secrets on a shared MCP server (credentials in request only)
 - Email, LLM synthesis, or alert delivery in this repo
 - Backtest / replay engines
 - Multi-user SaaS
