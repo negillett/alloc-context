@@ -8,6 +8,14 @@ import json
 import os
 import sys
 
+_SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _SCRIPTS_DIR not in sys.path:
+    sys.path.insert(0, _SCRIPTS_DIR)
+
+from _script_runtime import ensure_importable
+
+ensure_importable()
+
 from alloccontext.x402_smoke_redact import redact_evm_addresses, smoke_log
 
 MCP_URL = os.environ.get("MCP_URL", "https://mcp.alloc-context.com/mcp")
