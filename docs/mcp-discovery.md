@@ -78,6 +78,9 @@ python scripts/x402-paid-smoke-test.py
 Optional: `MCP_URL` (default `https://mcp.alloc-context.com/mcp`),
 `MCP_SMOKE_TOOL` (default `get_market_context`).
 
+Logs redact `0x` wallet and contract addresses by default. Set
+`SMOKE_LOG_ADDRESSES=1` for full addresses when debugging locally.
+
 ### Scheduled CI
 
 Workflow [`.github/workflows/paid-smoke.yml`](../.github/workflows/paid-smoke.yml)
