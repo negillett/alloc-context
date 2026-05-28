@@ -137,6 +137,27 @@ def _classify_sources(
     return required, optional_rows
 
 
+def mcp_health_ingest_summary(
+    config: AppConfig,
+    conn: sqlite3.Connection,
+    *,
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """Required-only ingest_ok for public MCP /health."""
+    ref = now or utc_now()
+    snapshot = ingest_status(conn, now=ref)
+    last_by_source = snapshot.get("last_ingest_by_source") or {}
+    required, optional_rows = _classify_sources(config, last_by_source, now=ref)
+    required_failures = [r["source"] for r in required if not r["ok"]]
+    optional_failures = [r["source"] for r in optional_rows if not r["ok"]]
+    return {
+        "ingest_ok": not required_failures,
+        "required_failures": required_failures,
+        "optional_feed_failures": optional_failures,
+        "source_health": snapshot.get("source_health") or {},
+    }
+
+
 def build_status_report(
     config: AppConfig,
     conn: sqlite3.Connection,

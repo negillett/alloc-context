@@ -26,8 +26,8 @@ from alloccontext.mcp.x402_config import (
 from alloccontext.mcp.x402_stables import effective_accepted_stable_symbols
 
 
-def _health_minimal_enabled() -> bool:
-    return os.environ.get("ALLOC_CONTEXT_HEALTH_MINIMAL", "").lower() in (
+def _health_verbose_enabled() -> bool:
+    return os.environ.get("ALLOC_CONTEXT_HEALTH_VERBOSE", "").lower() in (
         "1",
         "true",
         "yes",
@@ -36,24 +36,28 @@ def _health_minimal_enabled() -> bool:
 
 def _health(_: Any) -> JSONResponse:
     payload: dict[str, Any] = {"ok": True, "service": "alloc-context-mcp"}
-    minimal = _health_minimal_enabled()
+    verbose = _health_verbose_enabled()
     try:
         from alloccontext.config import load_config
         from alloccontext.store.db import connect
-        from alloccontext.store.status import ingest_status
+        from alloccontext.status_report import mcp_health_ingest_summary
 
         config = load_config(None)
         conn = connect(config.paths.db)
         try:
-            status = ingest_status(conn)
-            source_health = status.get("source_health") or {}
-            ingest_ok = all(row.get("ok") for row in source_health.values())
-            payload["ingest_ok"] = ingest_ok
-            if not minimal:
-                payload["source_health"] = source_health
+            summary = mcp_health_ingest_summary(config, conn)
+            payload["ingest_ok"] = summary["ingest_ok"]
+            optional_failures = summary.get("optional_feed_failures") or []
+            if optional_failures:
+                payload["optional_feed_failures"] = optional_failures
+            if verbose:
+                payload["source_health"] = summary.get("source_health")
+                required_failures = summary.get("required_failures") or []
+                if required_failures:
+                    payload["required_failures"] = required_failures
         finally:
             conn.close()
-    except OSError:
+    except Exception:
         payload["status_detail"] = "database_unavailable"
         payload["ok"] = False
         payload["ingest_ok"] = False
@@ -210,14 +214,21 @@ def _parse_mcp_port(raw: str) -> int:
 
 
 def main() -> None:
+    import logging
+
+    logger = logging.getLogger(__name__)
     host = os.environ.get("ALLOC_CONTEXT_MCP_HOST", "127.0.0.1")
     port = _parse_mcp_port(os.environ.get("ALLOC_CONTEXT_MCP_PORT", "8000"))
     x402 = os.environ.get("X402_ENABLED", "").lower() in ("1", "true", "yes")
-    if (
+    payment_env = (
         os.environ.get("X402_FACILITATOR_URL", "").startswith(CDP_FACILITATOR_URL)
         and os.environ.get("X402_PAY_TO", "").strip()
-    ):
-        x402 = True
+    )
+    if payment_env and not x402:
+        logger.warning(
+            "X402 payment env vars are set but X402 is not enabled; "
+            "set X402_ENABLED=1 or pass --x402 to require payment"
+        )
     run_http(host=host, port=port, x402=x402)
 
 
