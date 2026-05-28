@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
 
@@ -28,6 +29,26 @@ class HorizonConfig:
     """Quarterly scope for stored history (default 90 days)."""
 
     days: int
+
+
+_KALSHI_ALLOWED_HOSTS = frozenset(
+    {
+        "api.elections.kalshi.com",
+        "trading-api.kalshi.com",
+    }
+)
+
+
+def _validate_kalshi_base_url(url: str) -> str:
+    normalized = url.strip().rstrip("/")
+    parsed = urlparse(normalized)
+    if parsed.scheme != "https":
+        raise ValueError(f"kalshi.base_url must use https, got {parsed.scheme!r}")
+    host = (parsed.hostname or "").lower()
+    if host not in _KALSHI_ALLOWED_HOSTS:
+        allowed = ", ".join(sorted(_KALSHI_ALLOWED_HOSTS))
+        raise ValueError(f"kalshi.base_url host {host!r} not allowed ({allowed})")
+    return normalized
 
 
 DEFAULT_OPTIONAL_INGEST_SOURCES = frozenset(
@@ -321,8 +342,11 @@ def load_config(path: str | Path | None = None) -> AppConfig:
         exchanges=exchanges,
         kalshi=KalshiConfig(
             use_api=bool(kalshi_raw.get("use_api", True)),
-            base_url=str(
-                kalshi_raw.get("base_url") or "https://api.elections.kalshi.com/trade-api/v2"
+            base_url=_validate_kalshi_base_url(
+                str(
+                    kalshi_raw.get("base_url")
+                    or "https://api.elections.kalshi.com/trade-api/v2"
+                )
             ),
             timeout_seconds=float(kalshi_raw.get("timeout_seconds") or 20.0),
             cf_history_max_age_minutes=int(kalshi_raw.get("cf_history_max_age_minutes") or 90),

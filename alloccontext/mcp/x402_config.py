@@ -50,6 +50,12 @@ def load_x402_settings(*, require_payment: bool = False) -> X402Settings:
     mcp_price_heavy = os.environ.get(
         "X402_PRICE_MCP_HEAVY", DEFAULT_MCP_PRICE_HEAVY
     ).strip()
+    mcp_path = os.environ.get("X402_MCP_PATH", MCP_HTTP_PATH).strip() or MCP_HTTP_PATH
+    if mcp_path != MCP_HTTP_PATH:
+        raise RuntimeError(
+            f"X402_MCP_PATH must be {MCP_HTTP_PATH!r} (got {mcp_path!r}); "
+            "custom paths are unsupported until the MCP HTTP mount is configurable"
+        )
     enabled = require_payment and bool(pay_to)
 
     return X402Settings(
@@ -59,7 +65,7 @@ def load_x402_settings(*, require_payment: bool = False) -> X402Settings:
         network=network,
         mcp_price=mcp_price,
         mcp_price_heavy=mcp_price_heavy,
-        mcp_path=os.environ.get("X402_MCP_PATH", MCP_HTTP_PATH).strip() or MCP_HTTP_PATH,
+        mcp_path=mcp_path,
         accepted_stables=load_accepted_stable_symbols(),
     )
 
