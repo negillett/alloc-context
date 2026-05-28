@@ -77,7 +77,10 @@ python -m alloccontext_operator brief daily --stdout
 ## Troubleshooting
 
 - **Ingest fails:** check network; optional API keys in `.env` improve macro/ETF
-  coverage but are not required for the default dev sources.
+  coverage. If `state/dev/alloccontext.db` already exists, dev-up continues with
+  a warning; otherwise ingest must succeed on first run.
+- **Wrong config from `.env`:** dev-up forces `ALLOC_CONTEXT_CONFIG` to
+  `config/config.dev.yaml` (or your override) so MCP and ingest stay aligned.
 - **Port in use:** `DEV_MCP_PORT=8002 ./scripts/dev-up.sh` and update operator
   `mcp.url` accordingly.
 - **Stale process:** `./scripts/dev-down.sh` then `./scripts/dev-up.sh`
