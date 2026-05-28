@@ -56,15 +56,25 @@ def _ingest_summary(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _require_live_ingest_ok(ingest_result: dict[str, Any] | None) -> None:
-    """Fail closed when live ingest had required-source failures."""
-    if ingest_result is None:
-        return
+def _live_ingest_failure_payload(
+    ingest_result: dict[str, Any],
+    *,
+    as_of: datetime,
+) -> dict[str, Any] | None:
+    """Return a fail-closed MCP payload when live ingest had required failures."""
     fatal = ingest_result.get("fatal_errors") or {}
     if not fatal:
-        return
-    detail = "; ".join(f"{name}: {msg}" for name, msg in sorted(fatal.items()))
-    raise ValueError(f"live ingest failed for required sources: {detail}")
+        return None
+    return with_staleness(
+        {
+            "available": False,
+            "reason": "live_ingest_failed",
+            "fatal_errors": dict(fatal),
+            "ingest": _ingest_summary(ingest_result),
+            "freshness": "live",
+        },
+        as_of=as_of,
+    )
 
 
 def _apply_allocation_targets(
@@ -258,18 +268,21 @@ def get_context_bundle(
     band: float | None = None,
 ) -> dict[str, Any]:
     view_assets = validate_view_assets(assets)
+    now = (as_of or utc_now()).replace(microsecond=0)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+
     ingest_result: dict[str, Any] | None = None
     if freshness == "live":
         from alloccontext.ingest.runner import run_ingest
 
         ingest_result = run_ingest(conn, config)
-        _require_live_ingest_ok(ingest_result)
+        failure = _live_ingest_failure_payload(ingest_result, as_of=now)
+        if failure is not None:
+            return failure
 
     from alloccontext.rollup.context import build_context_bundle
 
-    now = (as_of or utc_now()).replace(microsecond=0)
-    if now.tzinfo is None:
-        now = now.replace(tzinfo=timezone.utc)
     bundle = build_context_bundle(
         conn,
         config,
@@ -308,16 +321,18 @@ def get_market_context(
     assets: list[str] | None = None,
 ) -> dict[str, Any]:
     view_assets = validate_view_assets(assets)
+    now = (as_of or utc_now()).replace(microsecond=0)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+
     ingest_result: dict[str, Any] | None = None
     if freshness == "live":
         from alloccontext.ingest.runner import run_ingest
 
         ingest_result = run_ingest(conn, config)
-        _require_live_ingest_ok(ingest_result)
-
-    now = (as_of or utc_now()).replace(microsecond=0)
-    if now.tzinfo is None:
-        now = now.replace(tzinfo=timezone.utc)
+        failure = _live_ingest_failure_payload(ingest_result, as_of=now)
+        if failure is not None:
+            return failure
 
     sentiment = build_sentiment_context(conn, config, config.rollup, now=now)
     macro = build_macro_context(conn, config, now=now, scope=scope)
