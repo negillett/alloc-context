@@ -38,6 +38,10 @@ def test_smoke_tool_arguments_use_bazaar_examples() -> None:
     args = smoke_tool_arguments("get_context_at")
     assert args["match"] == "at_or_before"
     assert "as_of" in args
+    delta_args = smoke_tool_arguments("get_context_delta")
+    assert delta_args["scope"] == "daily"
+    assert "prior_as_of" in delta_args
+    assert "2020" not in delta_args["prior_as_of"]
 
 
 def test_mcp_tool_bazaar_extensions() -> None:
