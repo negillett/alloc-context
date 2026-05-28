@@ -21,6 +21,23 @@ def test_format_age() -> None:
     assert format_age(None) == "unknown"
 
 
+def test_ingest_and_source_health_share_age_seconds(config, conn) -> None:
+    now = "2026-05-28T12:00:00+00:00"
+    record_ingest_run(
+        conn,
+        source="kraken",
+        started_at=now,
+        finished_at=now,
+        rows_upserted=10,
+        error=None,
+    )
+    report = build_status_report(config, conn, probe_mcp=False)
+    kraken_ingest = next(
+        r for r in report["ingest"]["required"] if r["source"] == "kraken"
+    )
+    assert kraken_ingest["age_seconds"] == report["source_health"]["kraken"]["age_seconds"]
+
+
 def test_build_status_report_classifies_required_and_optional(config, conn) -> None:
     now = "2026-05-28T12:00:00+00:00"
     for name, enabled in config.ingest.sources.items():

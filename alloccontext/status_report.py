@@ -86,9 +86,10 @@ def probe_mcp_health(url: str, *, timeout_seconds: float = 5.0) -> dict[str, Any
 def _classify_sources(
     config: AppConfig,
     last_by_source: dict[str, dict[str, Any]],
+    *,
+    now: datetime,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     optional = config.ingest.optional_sources
-    now = utc_now()
     required: list[dict[str, Any]] = []
     optional_rows: list[dict[str, Any]] = []
 
@@ -147,7 +148,7 @@ def build_status_report(
     now = utc_now()
     snapshot = ingest_status(conn, now=now)
     last_by_source = snapshot.get("last_ingest_by_source") or {}
-    required, optional_rows = _classify_sources(config, last_by_source)
+    required, optional_rows = _classify_sources(config, last_by_source, now=now)
 
     context_rows = conn.execute(
         """
