@@ -1,0 +1,114 @@
+from __future__ import annotations
+
+import json
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+from alloccontext.x402_production_check import (
+    X402CheckConfig,
+    X402ProductionCheckError,
+    check_discovery_paths,
+    check_manifest_pay_to,
+    check_mcp_payment_gate,
+    load_check_config,
+    run_production_checks,
+)
+
+
+def test_load_check_config_requires_public_url() -> None:
+    with pytest.raises(X402ProductionCheckError, match="X402_PUBLIC_URL"):
+        load_check_config({"X402_PAY_TO": "0xabc"})
+
+
+def test_load_check_config_requires_pay_to() -> None:
+    with pytest.raises(X402ProductionCheckError, match="X402_PAY_TO"):
+        load_check_config({"X402_PUBLIC_URL": "https://mcp.example.com"})
+
+
+def test_check_discovery_paths_prefers_local(monkeypatch) -> None:
+    config = X402CheckConfig(
+        public_url="https://mcp.example.com",
+        local_url="http://127.0.0.1:8000",
+        pay_to="0xabc",
+        network="eip155:8453",
+        facilitator="https://x402.org/facilitator",
+        cdp_api_key_id=None,
+        cdp_api_key_secret=None,
+    )
+
+    def fake_fetch(url: str, *, timeout: float = 20) -> tuple[int, bytes]:
+        assert url.startswith("http://127.0.0.1:8000")
+        return 200, b"ok"
+
+    monkeypatch.setattr(
+        "alloccontext.x402_production_check._fetch_ok",
+        fake_fetch,
+    )
+    messages = check_discovery_paths(config)
+    assert len(messages) == 3
+    assert all("127.0.0.1:8000" in message for message in messages)
+
+
+def test_check_manifest_pay_to_mismatch(monkeypatch) -> None:
+    config = X402CheckConfig(
+        public_url="https://mcp.example.com",
+        local_url="http://127.0.0.1:8000",
+        pay_to="0xexpected",
+        network="eip155:8453",
+        facilitator="https://x402.org/facilitator",
+        cdp_api_key_id=None,
+        cdp_api_key_secret=None,
+    )
+    monkeypatch.setattr(
+        "alloccontext.x402_production_check._fetch_ok",
+        lambda url, *, timeout=20: (
+            200,
+            json.dumps({"payment": {"payTo": "0xother"}}).encode(),
+        ),
+    )
+    with pytest.raises(X402ProductionCheckError, match="payTo"):
+        check_manifest_pay_to(config)
+
+
+def test_check_mcp_payment_gate_requires_402(monkeypatch) -> None:
+    config = X402CheckConfig(
+        public_url="https://mcp.example.com",
+        local_url="http://127.0.0.1:8000",
+        pay_to="0xabc",
+        network="eip155:8453",
+        facilitator="https://x402.org/facilitator",
+        cdp_api_key_id=None,
+        cdp_api_key_secret=None,
+    )
+
+    def fake_urlopen(req, timeout=20):  # noqa: ARG001
+        return MagicMock()
+
+    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    with pytest.raises(X402ProductionCheckError, match="402 without payment"):
+        check_mcp_payment_gate(config)
+
+
+def test_run_production_checks_skips_cdp_when_not_cdp_facilitator(monkeypatch) -> None:
+    env = {
+        "X402_PUBLIC_URL": "https://mcp.example.com",
+        "X402_PAY_TO": "0xabc",
+        "X402_FACILITATOR_URL": "https://x402.org/facilitator",
+        "X402_CHECK_LOCAL": "http://127.0.0.1:8000",
+    }
+    monkeypatch.setattr(
+        "alloccontext.x402_production_check.check_discovery_paths",
+        lambda config: ["GET /health -> 200 (http://127.0.0.1:8000)"],
+    )
+    monkeypatch.setattr(
+        "alloccontext.x402_production_check.check_manifest_pay_to",
+        lambda config: None,
+    )
+    monkeypatch.setattr(
+        "alloccontext.x402_production_check.check_mcp_payment_gate",
+        lambda config: "POST /mcp returns 402 with PAYMENT-REQUIRED",
+    )
+    messages = run_production_checks(env)
+    assert any("non-CDP" in message for message in messages)
+    assert any("402" in message for message in messages)
