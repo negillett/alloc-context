@@ -88,5 +88,11 @@ jobs:
           ALLOC_CONTEXT_REMOTE: ${{ vars.ALLOC_CONTEXT_REMOTE }}
         run: bash deploy/run-vps-smoke.sh
 
+      - name: Post-deploy x402 check
+        env:
+          ALLOC_CONTEXT_REMOTE: ${{ vars.ALLOC_CONTEXT_REMOTE }}
+          ALLOC_CONTEXT_ENV_FILE: ${{ vars.ALLOC_CONTEXT_ENV_FILE }}
+        run: bash deploy/run-vps-x402-check.sh
+
       - name: Deploy summary
         run: echo "Deployed ${GITHUB_SHA} to configured host"

@@ -91,6 +91,9 @@ The deploy job runs only on the primary GitHub repository; forks run tests only.
 
 After install, CI runs the operator `smoke` command on the VPS via
 `deploy/run-vps-smoke.sh` (health checks plus cached `get_context_bundle`).
-Smoke failure marks the deploy job red but does not roll back rsync or systemd
-changes. Set `ALLOC_CONTEXT_OPERATOR_REMOTE` if the operator checkout path
-differs from `/opt/trading/alloc-context-operator`.
+When `X402_ENABLED=true` in the shared env file, CI also runs
+`deploy/run-vps-x402-check.sh` (discovery URLs, manifest, 402 gate, CDP
+facilitator when configured). Smoke or x402 failure marks the deploy job red
+but does not roll back rsync or systemd changes. Set
+`ALLOC_CONTEXT_OPERATOR_REMOTE` if the operator checkout path differs from
+`/opt/trading/alloc-context-operator`.
