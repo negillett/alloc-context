@@ -42,8 +42,7 @@ def test_load_x402_settings_rejects_custom_mcp_path(monkeypatch: pytest.MonkeyPa
         load_x402_settings(require_payment=True)
 
 
-def test_health_minimal_omits_source_health(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("ALLOC_CONTEXT_HEALTH_MINIMAL", "1")
+def test_health_default_omits_source_health() -> None:
     app = build_http_app()
     client = TestClient(app)
     response = client.get("/health")
@@ -51,6 +50,17 @@ def test_health_minimal_omits_source_health(monkeypatch: pytest.MonkeyPatch) -> 
     body = response.json()
     assert "ingest_ok" in body
     assert "source_health" not in body
+
+
+def test_health_verbose_includes_source_health(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ALLOC_CONTEXT_HEALTH_VERBOSE", "1")
+    app = build_http_app()
+    client = TestClient(app)
+    response = client.get("/health")
+    assert response.status_code == 200
+    body = response.json()
+    assert "ingest_ok" in body
+    assert "source_health" in body
 
 
 async def _heavy_price_for_invalid_json() -> str:

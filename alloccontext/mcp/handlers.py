@@ -23,6 +23,7 @@ from alloccontext.mcp.assets import (
     validate_view_assets,
 )
 from alloccontext.mcp.staleness import with_staleness
+from alloccontext.mcp.validation import validate_band, validate_nav_usd, validate_target_pct
 from alloccontext.rollup.comparison import compare_context_bundles
 from alloccontext.rollup.regime import build_regime_context
 from alloccontext.rollup.snapshots import (
@@ -89,13 +90,18 @@ def _apply_allocation_targets(
     if target_pct is None and band is None:
         return portfolio
 
-    target = _normalize_pct(
-        target_pct
-        or portfolio.get("target_allocation_pct")
-        or dict(config.portfolio.target_allocations)
+    target = (
+        validate_target_pct(target_pct)
+        if target_pct is not None
+        else validate_target_pct(
+            portfolio.get("target_allocation_pct")
+            or dict(config.portfolio.target_allocations)
+        )
     )
-    band_width = float(
-        band if band is not None else portfolio.get("band", config.portfolio.rebalance_band)
+    band_width = (
+        validate_band(band)
+        if band is not None
+        else validate_band(portfolio.get("band", config.portfolio.rebalance_band))
     )
     band_result = check_allocation_band(
         portfolio.get("allocation_pct") or {},
@@ -161,9 +167,9 @@ def get_context_at(
     bundle = apply_assets_filter_to_bundle(bundle, view_assets)
     bundle = _attach_regime(bundle, config)
     if target_pct is not None:
-        bundle["target_pct"] = _normalize_pct(target_pct)
+        bundle["target_pct"] = validate_target_pct(target_pct)
     if band is not None:
-        bundle["band"] = float(band)
+        bundle["band"] = validate_band(band)
     bundle["snapshot_as_of"] = resolved
     bundle["requested_as_of"] = as_of
     bundle["match"] = match
@@ -236,8 +242,8 @@ def check_allocation_bands(
     results: list[dict[str, Any]] = []
     for index, scenario in enumerate(scenarios):
         name = str(scenario.get("name") or f"scenario_{index + 1}")
-        target = _normalize_pct(scenario.get("target_pct") or {})
-        band = float(scenario.get("band", 0.15))
+        target = validate_target_pct(scenario.get("target_pct") or {})
+        band = validate_band(scenario.get("band", 0.15))
         check = check_allocation_band(normalized_allocation, target, band)
         results.append(
             {
@@ -301,9 +307,9 @@ def get_context_bundle(
     bundle = apply_assets_filter_to_bundle(bundle, view_assets)
     bundle = _attach_regime(bundle, config)
     if target_pct is not None:
-        bundle["target_pct"] = _normalize_pct(target_pct)
+        bundle["target_pct"] = validate_target_pct(target_pct)
     if band is not None:
-        bundle["band"] = float(band)
+        bundle["band"] = validate_band(band)
     payload = with_staleness(bundle, as_of=now)
     payload["freshness"] = freshness
     if ingest_result is not None:
@@ -391,9 +397,10 @@ def get_rebalance_plan(
     now = (as_of or utc_now()).replace(microsecond=0)
     exchange_id = validate_exchange_id(exchange)
     normalized_allocation = _normalize_pct(allocation_pct)
-    normalized_target = _normalize_pct(target_pct)
+    normalized_target = validate_target_pct(target_pct)
+    nav = validate_nav_usd(nav_usd)
     plan = compute_rebalance_plan(
-        float(nav_usd),
+        nav,
         normalized_allocation,
         normalized_target,
         exchange=exchange_id,
@@ -407,7 +414,7 @@ def get_rebalance_plan(
         body["band_check"] = check_allocation_band(
             normalized_allocation,
             normalized_target,
-            float(band),
+            validate_band(band),
         )
     return with_staleness(body, as_of=now)
 
@@ -423,8 +430,8 @@ def get_portfolio_state(
     as_of: datetime | None = None,
 ) -> dict[str, Any]:
     exchange_id = validate_exchange_id(exchange)
-    target = _normalize_pct(target_pct or dict(config.portfolio.target_allocations))
-    band_width = float(
+    target = validate_target_pct(target_pct or dict(config.portfolio.target_allocations))
+    band_width = validate_band(
         band if band is not None else config.portfolio.rebalance_band
     )
     try:
@@ -468,8 +475,8 @@ def check_band(
     now = (as_of or utc_now()).replace(microsecond=0)
     result = check_allocation_band(
         _normalize_pct(allocation_pct),
-        _normalize_pct(target_pct),
-        float(band),
+        validate_target_pct(target_pct),
+        validate_band(band),
     )
     return with_staleness(result, as_of=now)
 

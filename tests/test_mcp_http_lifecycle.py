@@ -36,13 +36,14 @@ def test_mcp_initialize_over_http(monkeypatch: pytest.MonkeyPatch) -> None:
     assert body.get("result", {}).get("serverInfo", {}).get("name") == "alloc-context"
 
 
-def test_health_includes_source_health(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_health_verbose_includes_source_health(monkeypatch: pytest.MonkeyPatch) -> None:
     pytest.importorskip("mcp")
     from starlette.testclient import TestClient
 
     from alloccontext.mcp.http import build_http_app
 
     monkeypatch.setenv("ALLOC_CONTEXT_CONFIG", "config/config.example.yaml")
+    monkeypatch.setenv("ALLOC_CONTEXT_HEALTH_VERBOSE", "1")
     app = build_http_app(x402=False, config_path="config/config.example.yaml")
 
     with TestClient(app) as client:

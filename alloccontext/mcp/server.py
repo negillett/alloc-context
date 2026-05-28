@@ -278,7 +278,7 @@ def create_server(
     )
     def check_allocation_bands(
         allocation_pct: dict[str, float],
-        scenarios: list[dict[str, float]],
+        scenarios: list[dict[str, Any]],
     ) -> dict[str, Any]:
         return handlers.check_allocation_bands(allocation_pct, scenarios)
 

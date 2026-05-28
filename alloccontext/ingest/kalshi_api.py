@@ -7,7 +7,7 @@ from typing import Any
 
 from alloccontext.ingest.cf_benchmarks import CFBenchmarksPriceError, fetch_prices
 from alloccontext.ingest.cf_history import load_cf_history, record_cf_price_samples, save_cf_history
-from alloccontext.ingest.kalshi_client import KalshiClient, no_ask_cents_from_row, price_cents_from_row
+from alloccontext.ingest.kalshi_client import KalshiAPIError, KalshiClient, no_ask_cents_from_row, price_cents_from_row
 from alloccontext.ingest.kalshi_state import tactical_to_storage
 from alloccontext.rollup.cluster import MarketQuote, sentiment_up_fraction
 from alloccontext.rollup.cluster_config import RollupConfig
@@ -130,7 +130,7 @@ def refresh_kalshi_api(conn: sqlite3.Connection, config) -> dict[str, Any]:
 
     try:
         markets = fetch_series_market_quotes(client, series)
-    except Exception as exc:  # noqa: BLE001 — surface API errors to ingest runner
+    except KalshiAPIError as exc:
         return {"ok": False, "error": str(exc), "rows": 0}
 
     cf_history = load_cf_history(conn)
