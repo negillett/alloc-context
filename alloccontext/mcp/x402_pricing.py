@@ -46,6 +46,8 @@ def build_mcp_dynamic_price(*, light_price: str, heavy_price: str):
 
     async def resolve_price(context: HTTPRequestContext) -> str:
         body = await read_mcp_request_json(context)
+        if body is None:
+            return heavy_price
         if mcp_call_is_heavy(body):
             return heavy_price
         return light_price

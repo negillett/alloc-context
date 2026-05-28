@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import os
 from collections.abc import AsyncIterator
 from typing import Any
 
@@ -25,8 +26,17 @@ from alloccontext.mcp.x402_config import (
 from alloccontext.mcp.x402_stables import effective_accepted_stable_symbols
 
 
+def _health_minimal_enabled() -> bool:
+    return os.environ.get("ALLOC_CONTEXT_HEALTH_MINIMAL", "").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+
+
 def _health(_: Any) -> JSONResponse:
     payload: dict[str, Any] = {"ok": True, "service": "alloc-context-mcp"}
+    minimal = _health_minimal_enabled()
     try:
         from alloccontext.config import load_config
         from alloccontext.store.db import connect
@@ -36,14 +46,17 @@ def _health(_: Any) -> JSONResponse:
         conn = connect(config.paths.db)
         try:
             status = ingest_status(conn)
-            payload["source_health"] = status.get("source_health")
-            payload["ingest_ok"] = all(
-                row.get("ok") for row in (status.get("source_health") or {}).values()
-            )
+            source_health = status.get("source_health") or {}
+            ingest_ok = all(row.get("ok") for row in source_health.values())
+            payload["ingest_ok"] = ingest_ok
+            if not minimal:
+                payload["source_health"] = source_health
         finally:
             conn.close()
     except OSError:
         payload["status_detail"] = "database_unavailable"
+        payload["ok"] = False
+        payload["ingest_ok"] = False
     return JSONResponse(payload)
 
 
@@ -184,11 +197,21 @@ async def run_http_async(
     await server.serve()
 
 
-def main() -> None:
-    import os
+def _parse_mcp_port(raw: str) -> int:
+    try:
+        port = int(raw)
+    except ValueError as exc:
+        raise SystemExit(
+            f"ALLOC_CONTEXT_MCP_PORT must be an integer, got {raw!r}"
+        ) from exc
+    if not 1 <= port <= 65535:
+        raise SystemExit(f"ALLOC_CONTEXT_MCP_PORT out of range: {port}")
+    return port
 
+
+def main() -> None:
     host = os.environ.get("ALLOC_CONTEXT_MCP_HOST", "127.0.0.1")
-    port = int(os.environ.get("ALLOC_CONTEXT_MCP_PORT", "8000"))
+    port = _parse_mcp_port(os.environ.get("ALLOC_CONTEXT_MCP_PORT", "8000"))
     x402 = os.environ.get("X402_ENABLED", "").lower() in ("1", "true", "yes")
     if (
         os.environ.get("X402_FACILITATOR_URL", "").startswith(CDP_FACILITATOR_URL)

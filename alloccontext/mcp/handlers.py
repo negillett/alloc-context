@@ -56,6 +56,17 @@ def _ingest_summary(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _require_live_ingest_ok(ingest_result: dict[str, Any] | None) -> None:
+    """Fail closed when live ingest had required-source failures."""
+    if ingest_result is None:
+        return
+    fatal = ingest_result.get("fatal_errors") or {}
+    if not fatal:
+        return
+    detail = "; ".join(f"{name}: {msg}" for name, msg in sorted(fatal.items()))
+    raise ValueError(f"live ingest failed for required sources: {detail}")
+
+
 def _apply_allocation_targets(
     portfolio: dict[str, Any],
     config,
@@ -252,6 +263,7 @@ def get_context_bundle(
         from alloccontext.ingest.runner import run_ingest
 
         ingest_result = run_ingest(conn, config)
+        _require_live_ingest_ok(ingest_result)
 
     from alloccontext.rollup.context import build_context_bundle
 
@@ -301,6 +313,7 @@ def get_market_context(
         from alloccontext.ingest.runner import run_ingest
 
         ingest_result = run_ingest(conn, config)
+        _require_live_ingest_ok(ingest_result)
 
     now = (as_of or utc_now()).replace(microsecond=0)
     if now.tzinfo is None:

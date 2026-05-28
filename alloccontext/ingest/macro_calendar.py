@@ -74,8 +74,15 @@ def fetch_finnhub_events(
         f"&token={api_key}"
     )
     req = urllib.request.Request(url, headers={"User-Agent": "alloc-context/0.1"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        payload = json.loads(resp.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            payload = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        from alloccontext.ingest.http_errors import http_error_message
+
+        raise ValueError(
+            http_error_message(exc, context="finnhub economic calendar")
+        ) from exc
     calendar = payload.get("economicCalendar") if isinstance(payload, dict) else payload
     if not isinstance(calendar, list):
         raise ValueError("invalid finnhub economic calendar payload")
@@ -131,8 +138,13 @@ def fetch_fmp_events(
         f"&apikey={api_key}"
     )
     req = urllib.request.Request(url, headers={"User-Agent": "alloc-context/0.1"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        payload = json.loads(resp.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            payload = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as exc:
+        from alloccontext.ingest.http_errors import http_error_message
+
+        raise ValueError(http_error_message(exc, context="fmp economic calendar")) from exc
     if not isinstance(payload, list):
         raise ValueError("invalid fmp economic calendar payload")
 

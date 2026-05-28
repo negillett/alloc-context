@@ -32,8 +32,15 @@ def fetch_series_observations(
     )
     url = f"{FRED_OBSERVATIONS_URL}?{params}"
     request = urllib.request.Request(url, headers={"User-Agent": "alloc-context/0.1"})
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        from alloccontext.ingest.http_errors import http_error_message
+
+        raise ValueError(
+            http_error_message(exc, context=f"fred series {series_id}")
+        ) from exc
     if not isinstance(payload, dict):
         raise ValueError(f"invalid FRED payload for {series_id}")
     rows = payload.get("observations") or []
