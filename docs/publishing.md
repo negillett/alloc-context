@@ -18,7 +18,8 @@ The automated path does **not** rely on tag pushes to start another workflow
 same run after PyPI publish and VPS deploy succeed.
 
 Pipeline order: **gate** (green `main` CI) → **test** → **prepare** (bump) →
-**validate-version** → **publish-pypi** → **deploy** → **finalize-tag**.
+**validate-version** → **publish-pypi** → **publish-mcp-registry** + **deploy**
+(parallel) → **finalize-tag**.
 
 ## Prerequisites
 
@@ -95,7 +96,8 @@ README, keywords, and **MCP Server** URL.
 
 ## After PyPI publish
 
-1. Publish or refresh the MCP Registry entry — see [distribution.md](distribution.md).
+1. Publish to the MCP Registry — **publish-mcp-registry** workflow or the next
+   **release** run; see [distribution.md](distribution.md).
 2. Wait for directory mirrors or submit manually.
 
 ## Break-glass

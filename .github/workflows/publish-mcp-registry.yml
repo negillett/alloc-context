@@ -1,0 +1,36 @@
+name: publish-mcp-registry
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: mcp-registry-${{ github.repository }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    if: github.repository == 'negillett/alloc-context'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Install mcp-publisher
+        run: bash scripts/install-mcp-publisher.sh ./mcp-publisher
+
+      - name: Publish to MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish --dry-run --file server.json
+          ./mcp-publisher publish --file server.json
+
+      - name: Verify registry listing
+        run: |
+          curl -fsS "https://registry.modelcontextprotocol.io/v0/servers?search=negillett/alloc-context" \
+            | jq -e '[.servers[] | select(.name | test("alloc-context"; "i"))] | length > 0'
