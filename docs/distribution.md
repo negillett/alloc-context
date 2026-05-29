@@ -52,7 +52,8 @@ This repo ships [`server.json`](../server.json) at the root with:
 
 1. Install the publisher CLI (see [MCP publishing guide](https://modelcontextprotocol.io/registry/publishing)).
 2. From the repo root, authenticate as `negillett` (GitHub OAuth or OIDC in CI).
-3. Bump `version` in `server.json` and `pyproject.toml` together on each release.
+3. Bump versions with **bump-release** workflow or `scripts/bump_version.py` — see
+   [publishing.md](publishing.md).
 4. Run `mcp-publisher publish` (or the current equivalent from the registry docs).
 
 Verify after publish:

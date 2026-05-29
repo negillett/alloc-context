@@ -51,6 +51,19 @@ def _workflow_on(workflow: dict) -> dict:
     return workflow.get("on") or workflow[True]
 
 
+def test_bump_release_workflow_dispatches_version_bump():
+    workflow = _load_workflow("bump-release.yml")
+    on = _workflow_on(workflow)
+    assert "workflow_dispatch" in on
+    inputs = on["workflow_dispatch"]["inputs"]
+    assert "bump" in inputs
+    assert "exact_version" in inputs
+    bump_steps = _job_steps(workflow, "bump-and-tag")
+    runs = [step.get("run", "") for step in bump_steps]
+    assert any("scripts/bump_version.py" in run for run in runs)
+    assert any("git push origin" in run and "TAG" in run for run in runs)
+
+
 def test_release_publishes_and_deploys_on_version_tag():
     workflow = _load_workflow("release.yml")
     assert _workflow_on(workflow)["push"]["tags"] == ["v*"]

@@ -31,10 +31,12 @@ jobs:
           PY_VER=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
           SJ_VER=$(python3 -c "import json; print(json.load(open('server.json'))['version'])")
           PKG_VER=$(python3 -c "import json; print(json.load(open('server.json'))['packages'][0]['version'])")
-          echo "tag=v${TAG} pyproject=${PY_VER} server.json=${SJ_VER} package=${PKG_VER}"
+          INIT_VER=$(python3 -c "import re; t=open('alloccontext/__init__.py').read(); print(re.search(r'^__version__ = \"([^\"]+)\"', t, re.M).group(1))")
+          echo "tag=v${TAG} pyproject=${PY_VER} server.json=${SJ_VER} package=${PKG_VER} init=${INIT_VER}"
           test "${TAG}" = "${PY_VER}"
           test "${TAG}" = "${SJ_VER}"
           test "${TAG}" = "${PKG_VER}"
+          test "${TAG}" = "${INIT_VER}"
 
   publish-pypi:
     needs: validate-version
