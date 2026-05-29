@@ -213,10 +213,7 @@ jobs:
       - name: Install mcp-publisher
         run: bash scripts/install-mcp-publisher.sh ./mcp-publisher
       - name: Publish to MCP Registry
-        run: |
-          ./mcp-publisher login github-oidc
-          ./mcp-publisher publish --dry-run --file server.json
-          ./mcp-publisher publish --file server.json
+        run: bash scripts/publish-mcp-registry.sh ./mcp-publisher
 
   deploy:
     needs: [validate-version, publish-pypi]

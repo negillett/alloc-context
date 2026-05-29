@@ -66,8 +66,7 @@ This repo ships [`server.json`](../server.json) at the root with:
    ```bash
    bash scripts/install-mcp-publisher.sh ~/.local/bin/mcp-publisher
    mcp-publisher login github
-   mcp-publisher publish --dry-run --file server.json
-   mcp-publisher publish --file server.json
+   bash scripts/publish-mcp-registry.sh ~/.local/bin/mcp-publisher
    ```
 4. See the [MCP publishing guide](https://modelcontextprotocol.io/registry/publishing).
 

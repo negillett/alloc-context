@@ -108,7 +108,7 @@ def test_release_workflow_unified_pipeline():
     registry_runs = [
         step.get("run", "") for step in _job_steps(workflow, "publish-mcp-registry")
     ]
-    assert any("mcp-publisher publish" in run for run in registry_runs)
+    assert any("publish-mcp-registry.sh" in run for run in registry_runs)
 
     finalize = workflow["jobs"]["finalize-tag"]
     assert "publish-mcp-registry" in finalize["needs"]
@@ -122,4 +122,4 @@ def test_publish_mcp_registry_workflow_dispatch():
     assert "workflow_dispatch" in on
     runs = [step.get("run", "") for step in _job_steps(workflow, "publish")]
     assert any("install-mcp-publisher" in run for run in runs)
-    assert any("github-oidc" in run for run in runs)
+    assert any("publish-mcp-registry.sh" in run for run in runs)
