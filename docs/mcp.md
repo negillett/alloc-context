@@ -45,6 +45,21 @@ On a self-hosted install, `freshness=cached` reads the ingest SQLite DB.
 Hosted endpoints serve the host ingested cache unless the client requests
 `freshness=live` (requires API keys on the host).
 
+### Response staleness
+
+`get_context_bundle` and `get_market_context` carry two staleness signals:
+
+| Field | Meaning |
+|-------|---------|
+| `as_of` / `age_seconds` | When the **response** was generated (≈ now for cached reads) |
+| `data_as_of` / `data_age_seconds` | Oldest **underlying fact** in the payload (portfolio snapshot, sentiment, breadth) — use this to judge data freshness |
+
+`data_*` is omitted only when no constituent timestamp is present. A
+`freshness=live` request whose ingest does not succeed fails closed: the
+response is `{ "available": false, "reason": "live_ingest_failed", ... }`
+rather than a stale bundle presented as live. Optional-source-only failures
+keep ingest `ok` and still return a bundle.
+
 ### Live portfolio (credentials in request)
 
 | Tool | Input | Output |

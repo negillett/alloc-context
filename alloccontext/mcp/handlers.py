@@ -22,7 +22,7 @@ from alloccontext.mcp.assets import (
     filter_market_assets,
     validate_view_assets,
 )
-from alloccontext.mcp.staleness import with_staleness
+from alloccontext.mcp.staleness import with_data_staleness, with_staleness
 from alloccontext.mcp.validation import validate_band, validate_nav_usd, validate_target_pct
 from alloccontext.rollup.comparison import compare_context_bundles
 from alloccontext.rollup.regime import build_regime_context
@@ -62,9 +62,17 @@ def _live_ingest_failure_payload(
     *,
     as_of: datetime,
 ) -> dict[str, Any] | None:
-    """Return a fail-closed MCP payload when live ingest had required failures."""
+    """Return a fail-closed MCP payload when live ingest did not succeed.
+
+    Fails closed on required-source failures (``fatal_errors``) and, defensively,
+    on any ingest outcome that is not ``ok`` — so a degraded live ingest can
+    never be presented as a successful ``freshness=live`` response (ADR-005 C2).
+    Optional-only failures keep ``ok=True`` (``ok = not fatal``) and do not trip
+    this gate, preserving partial ingest for optional sources.
+    """
     fatal = ingest_result.get("fatal_errors") or {}
-    if not fatal:
+    ok = bool(ingest_result.get("ok", True))
+    if not fatal and ok:
         return None
     return with_staleness(
         {
@@ -312,6 +320,7 @@ def get_context_bundle(
         bundle["band"] = validate_band(band)
     payload = with_staleness(bundle, as_of=now)
     payload["freshness"] = freshness
+    with_data_staleness(payload, now=now)
     if ingest_result is not None:
         payload["ingest"] = _ingest_summary(ingest_result)
     return payload
@@ -380,6 +389,7 @@ def get_market_context(
         as_of=now,
     )
     payload = apply_assets_filter_to_market_payload(payload, view_assets)
+    with_data_staleness(payload, now=now)
     if ingest_result is not None:
         payload["ingest"] = _ingest_summary(ingest_result)
     return payload
