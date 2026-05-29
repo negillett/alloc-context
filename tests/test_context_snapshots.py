@@ -65,7 +65,12 @@ def test_mcp_get_context_bundle_does_not_pollute_snapshots(conn, config) -> None
     assert rows[0]["as_of"] == "2026-05-20T12:00:00+00:00"
 
 
-def test_get_context_bundle_live_includes_ingest_errors(conn, config) -> None:
+def test_get_context_bundle_live_fails_closed_on_ok_false(conn, config) -> None:
+    """ADR-005 C2: a live ingest that is not ``ok`` must not serve a bundle.
+
+    Even when ``fatal_errors`` is absent (e.g. a malformed/partial ingest
+    return), ``ok: False`` must fail closed rather than build a full bundle.
+    """
     _seed_portfolio(conn, ts="2026-05-21T12:00:00+00:00", nav=1000.0)
     with patch(
         "alloccontext.ingest.runner.run_ingest",
@@ -77,9 +82,34 @@ def test_get_context_bundle_live_includes_ingest_errors(conn, config) -> None:
     ):
         payload = get_context_bundle(conn, config, scope="daily", freshness="live")
 
+    assert payload["available"] is False
+    assert payload["reason"] == "live_ingest_failed"
     assert payload["freshness"] == "live"
     assert payload["ingest"]["ok"] is False
     assert payload["ingest"]["errors"] == {"kraken": "timeout"}
+    assert "bundle_id" not in payload
+
+
+def test_get_context_bundle_live_optional_failure_still_serves(conn, config) -> None:
+    """Optional-only ingest failures keep ``ok=True`` and still serve a bundle."""
+    _seed_portfolio(conn, ts="2026-05-21T12:00:00+00:00", nav=1000.0)
+    with patch(
+        "alloccontext.ingest.runner.run_ingest",
+        return_value={
+            "ok": True,
+            "partial": True,
+            "fatal_errors": {},
+            "optional_errors": {"fred": "down"},
+            "errors": {"fred": "down"},
+            "counts": {},
+        },
+    ):
+        payload = get_context_bundle(conn, config, scope="daily", freshness="live")
+
+    assert payload.get("available") is not False
+    assert payload["freshness"] == "live"
+    assert "bundle_id" in payload
+    assert payload["ingest"]["ok"] is True
 
 
 def test_run_ingest_saves_snapshots(config, conn, monkeypatch) -> None:
