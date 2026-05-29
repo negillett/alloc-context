@@ -41,15 +41,30 @@ def test_ci_runs_actionlint_from_workspace_binary():
     assert "1.7.12" in run_script
 
 
-def test_ci_deploys_to_vps_on_main_push():
+def test_ci_has_no_deploy_job():
     workflow = _load_workflow("ci.yml")
+    assert "deploy" not in workflow["jobs"]
+
+
+def _workflow_on(workflow: dict) -> dict:
+    # PyYAML may parse bare `on:` as boolean True.
+    return workflow.get("on") or workflow[True]
+
+
+def test_release_publishes_and_deploys_on_version_tag():
+    workflow = _load_workflow("release.yml")
+    assert _workflow_on(workflow)["push"]["tags"] == ["v*"]
     deploy = workflow["jobs"]["deploy"]
-    assert deploy["needs"] in (["test"], "test")
-    assert "github.ref == 'refs/heads/main'" in deploy["if"]
-    assert "github.event_name == 'push'" in deploy["if"]
-    steps = _job_steps(workflow, "deploy")
-    names = [step.get("name", "") for step in steps]
+    publish = workflow["jobs"]["publish-pypi"]
+    assert deploy["needs"] in (["validate-version"], "validate-version")
+    assert publish["needs"] in (["validate-version"], "validate-version")
+    deploy_steps = _job_steps(workflow, "deploy")
+    names = [step.get("name", "") for step in deploy_steps]
     assert "Rsync to VPS" in names
     assert "Install on VPS" in names
-    install = next(step for step in steps if step.get("name") == "Install on VPS")
+    install = next(step for step in deploy_steps if step.get("name") == "Install on VPS")
     assert "deploy/remote-install.sh" in install["run"]
+    publish_steps = _job_steps(workflow, "publish-pypi")
+    publish_runs = [step.get("run", "") for step in publish_steps]
+    assert any("python -m build" in run for run in publish_runs)
+    assert any(step.get("uses", "").startswith("pypa/gh-action-pypi-publish") for step in publish_steps)

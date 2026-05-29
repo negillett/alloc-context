@@ -52,10 +52,16 @@ configure — edit the `.service` files or override with drop-ins for your layou
 Run MCP separately (stdio for Cursor, or HTTP + x402 for agents). See
 [docs/mcp-http.md](mcp-http.md).
 
-## CI deploy
+## CI release and deploy
 
-The repository may run an optional GitHub Actions **deploy** job after
-tests pass on `main`. It requires repository secrets:
+Production VPS deploys run from the **release** workflow when you push a
+version tag (`v*`), after tests pass. The same workflow publishes to PyPI.
+See [publishing.md](publishing.md). Pushes to `main` run tests only (no deploy).
+
+The operator repository (`alloc-context-operator`) still deploys on `main`
+push.
+
+Release deploy requires repository secrets:
 
 | Secret | Required | Purpose |
 |--------|----------|---------|
@@ -88,7 +94,8 @@ VPS_HOST=your.host.example SSH_KEY=~/.ssh/deploy_key ./deploy/rsync-to-vps.sh
 Set `ALLOC_CONTEXT_REMOTE` and optional `ALLOC_CONTEXT_ENV_FILE` when running
 `deploy/remote-install.sh` if your paths differ from the generic unit templates.
 
-The deploy job runs only on the primary GitHub repository; forks run tests only.
+Release deploy runs only on the primary GitHub repository; forks run tests
+only.
 
 After install, CI runs the operator `smoke` command on the VPS via
 `deploy/run-vps-smoke.sh` (health checks plus cached `get_context_bundle`).
