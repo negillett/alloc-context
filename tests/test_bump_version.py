@@ -9,6 +9,7 @@ import pytest
 from scripts.bump_version import (
     apply_version,
     bump_version,
+    check_version,
     parse_version,
     read_current_version,
     resolve_target_version,
@@ -38,6 +39,35 @@ def test_resolve_target_version_exact_overrides_bump():
     )
 
 
+def test_resolve_target_version_rejects_downgrade():
+    with pytest.raises(ValueError, match="downgrade"):
+        resolve_target_version(current="0.2.0", bump=None, exact="0.1.0")
+
+
+def test_resolve_target_version_rejects_unchanged_exact():
+    with pytest.raises(ValueError, match="tag-only"):
+        resolve_target_version(current="0.1.0", bump=None, exact="0.1.0")
+
+
+def test_check_version_passes_when_in_sync(tmp_path: Path):
+    for rel in ("pyproject.toml", "server.json", "alloccontext/__init__.py"):
+        src = REPO_ROOT / rel
+        dest = tmp_path / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(src, dest)
+    check_version("0.1.0", root=tmp_path)
+
+
+def test_check_version_fails_when_out_of_sync(tmp_path: Path):
+    for rel in ("pyproject.toml", "server.json", "alloccontext/__init__.py"):
+        src = REPO_ROOT / rel
+        dest = tmp_path / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(src, dest)
+    with pytest.raises(ValueError, match="out of sync"):
+        check_version("9.9.9", root=tmp_path)
+
+
 def test_apply_version_updates_all_files(tmp_path: Path):
     for rel in ("pyproject.toml", "server.json", "alloccontext/__init__.py"):
         src = REPO_ROOT / rel
@@ -51,3 +81,4 @@ def test_apply_version_updates_all_files(tmp_path: Path):
     assert server["version"] == "9.8.7"
     assert server["packages"][0]["version"] == "9.8.7"
     assert versions_in_sync("9.8.7", root=tmp_path)
+    check_version("9.8.7", root=tmp_path)

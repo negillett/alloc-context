@@ -54,12 +54,14 @@ Run MCP separately (stdio for Cursor, or HTTP + x402 for agents). See
 
 ## CI release and deploy
 
-Production VPS deploys run from the **release** workflow when you push a
-version tag (`v*`), after tests pass. The same workflow publishes to PyPI.
-See [publishing.md](publishing.md). Pushes to `main` run tests only (no deploy).
+Production VPS deploys run from the **release** workflow — either
+**workflow_dispatch** (recommended) or a manual `vX.Y.Z` tag push. The same
+workflow publishes to PyPI. See [publishing.md](publishing.md).
 
-The operator repository (`alloc-context-operator`) still deploys on `main`
-push.
+| Repo | `main` push | Production deploy |
+|------|-------------|-------------------|
+| `alloc-context` | Tests only (`ci`) | **release** workflow |
+| `alloc-context-operator` | Tests + deploy (`ci`) | On every `main` merge |
 
 Release deploy requires repository secrets:
 

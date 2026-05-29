@@ -121,13 +121,33 @@ def resolve_target_version(
     current: str,
     bump: BumpPart | None,
     exact: str | None,
+    allow_unchanged: bool = False,
 ) -> str:
     if exact:
         parse_version(exact)
+        if parse_version(exact) < parse_version(current):
+            raise ValueError(f"refusing downgrade: {exact} < {current}")
+        if exact == current and not allow_unchanged:
+            raise ValueError(
+                f"version already {current}; use tag-only release or bump"
+            )
         return exact
     if bump is None:
-        raise ValueError("provide --bump or an exact version")
-    return bump_version(current, bump)
+        raise ValueError("provide --bump, --check, --current, or an exact version")
+    target = bump_version(current, bump)
+    if target == current and not allow_unchanged:
+        raise ValueError(f"version already {current}")
+    return target
+
+
+def check_version(version: str, root: Path | None = None) -> None:
+    parse_version(version)
+    if not versions_in_sync(version, root=root):
+        root = root or repo_root()
+        current = read_current_version(root)
+        raise ValueError(
+            f"version files out of sync for {version!r} (pyproject={current!r})"
+        )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -143,6 +163,16 @@ def main(argv: list[str] | None = None) -> int:
         help="Increment from current pyproject.toml version",
     )
     parser.add_argument(
+        "--check",
+        metavar="VERSION",
+        help="Exit 0 when all tracked files match VERSION",
+    )
+    parser.add_argument(
+        "--current",
+        action="store_true",
+        help="Print current pyproject.toml version",
+    )
+    parser.add_argument(
         "--write",
         action="store_true",
         help="Update version files (default: dry-run)",
@@ -154,12 +184,28 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    if args.current:
+        print(read_current_version())
+        return 0
+
+    if args.check:
+        try:
+            check_version(args.check)
+        except ValueError as exc:
+            print(exc, file=sys.stderr)
+            return 1
+        return 0
+
     current = read_current_version()
-    target = resolve_target_version(
-        current=current,
-        bump=args.bump,
-        exact=args.exact_version,
-    )
+    try:
+        target = resolve_target_version(
+            current=current,
+            bump=args.bump,
+            exact=args.exact_version,
+        )
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        return 1
 
     if not args.write:
         print(f"current={current} target={target} (dry-run; pass --write to apply)")
@@ -172,8 +218,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     apply_version(target)
-    if not versions_in_sync(target):
-        print("version files out of sync after apply", file=sys.stderr)
+    try:
+        check_version(target)
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
         return 1
 
     if args.print:

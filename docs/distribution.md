@@ -26,16 +26,18 @@ with x402 pay-per-call ($0.02 cached / $0.05 live). https://mcp.alloc-context.co
 | **Topics** | `mcp`, `x402`, `bitcoin`, `ethereum`, `model-context-protocol`, `agents`, `portfolio` |
 | **Website** | `https://mcp.alloc-context.com/llms.txt` |
 
-Update with the workspace GitHub token:
+Update from a machine with repo admin access:
 
 ```bash
-cd /path/to/workspace-alloc-context
-scripts/with-alloc-gh.sh gh repo edit negillett/alloc-context \
+gh repo edit negillett/alloc-context \
   --description "BTC/ETH allocation MCP for agents — drift, rebalance, market context. Hosted: https://mcp.alloc-context.com/mcp (x402 on Base)." \
   --add-topic mcp --add-topic x402 --add-topic bitcoin --add-topic ethereum \
   --add-topic model-context-protocol --add-topic agents --add-topic portfolio \
   --homepage "https://mcp.alloc-context.com/llms.txt"
 ```
+
+(AllocContext workspace: prefix with `scripts/with-alloc-gh.sh` if using the
+parent-folder PAT.)
 
 ## Official MCP Registry
 
@@ -52,7 +54,7 @@ This repo ships [`server.json`](../server.json) at the root with:
 
 1. Install the publisher CLI (see [MCP publishing guide](https://modelcontextprotocol.io/registry/publishing)).
 2. From the repo root, authenticate as `negillett` (GitHub OAuth or OIDC in CI).
-3. Bump versions with **bump-release** workflow or `scripts/bump_version.py` — see
+3. Run the **release** workflow or bump via `scripts/bump_version.py` — see
    [publishing.md](publishing.md).
 4. Run `mcp-publisher publish` (or the current equivalent from the registry docs).
 
@@ -98,4 +100,4 @@ Optional one-time post (developer community or x402 thread):
 |-----|---------|
 | [mcp-discovery.md](mcp-discovery.md) | CDP Bazaar and x402 manifest |
 | [agent-integration.md](agent-integration.md) | Paid HTTP MCP for agents |
-| [publishing.md](publishing.md) | PyPI release checklist |
+| [publishing.md](publishing.md) | PyPI + VPS release workflow |

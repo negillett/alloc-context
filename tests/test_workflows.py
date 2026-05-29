@@ -22,6 +22,11 @@ def _job_steps(workflow: dict, job_name: str | None = None) -> list[dict]:
     return jobs[job_name]["steps"]
 
 
+def _workflow_on(workflow: dict) -> dict:
+    # PyYAML may parse bare `on:` as boolean True.
+    return workflow.get("on") or workflow[True]
+
+
 def test_ci_runs_pytest():
     workflow = _load_workflow("ci.yml")
     steps = _job_steps(workflow, "test")
@@ -46,38 +51,52 @@ def test_ci_has_no_deploy_job():
     assert "deploy" not in workflow["jobs"]
 
 
-def _workflow_on(workflow: dict) -> dict:
-    # PyYAML may parse bare `on:` as boolean True.
-    return workflow.get("on") or workflow[True]
+def test_bump_release_workflow_removed():
+    assert not (WORKFLOWS_DIR / "bump-release.yml").exists()
 
 
-def test_bump_release_workflow_dispatches_version_bump():
-    workflow = _load_workflow("bump-release.yml")
+def test_release_workflow_unified_pipeline():
+    workflow = _load_workflow("release.yml")
     on = _workflow_on(workflow)
     assert "workflow_dispatch" in on
     inputs = on["workflow_dispatch"]["inputs"]
     assert "bump" in inputs
     assert "exact_version" in inputs
-    bump_steps = _job_steps(workflow, "bump-and-tag")
-    runs = [step.get("run", "") for step in bump_steps]
-    assert any("scripts/bump_version.py" in run for run in runs)
-    assert any("git push origin" in run and "TAG" in run for run in runs)
+    assert "tag_only" in inputs
+    assert on["push"]["tags"] == ["v[0-9]+.[0-9]+.[0-9]+"]
+    assert workflow["concurrency"]["group"].startswith("release-")
 
+    jobs = workflow["jobs"]
+    assert jobs["deploy"]["needs"] == ["validate-version", "publish-pypi"]
+    assert jobs["finalize-tag"]["needs"] == [
+        "prepare",
+        "validate-version",
+        "publish-pypi",
+        "deploy",
+    ]
 
-def test_release_publishes_and_deploys_on_version_tag():
-    workflow = _load_workflow("release.yml")
-    assert _workflow_on(workflow)["push"]["tags"] == ["v*"]
-    deploy = workflow["jobs"]["deploy"]
-    publish = workflow["jobs"]["publish-pypi"]
-    assert deploy["needs"] in (["validate-version"], "validate-version")
-    assert publish["needs"] in (["validate-version"], "validate-version")
+    prepare_runs = [step.get("run", "") for step in _job_steps(workflow, "prepare")]
+    assert any("scripts/bump_version.py" in run for run in prepare_runs)
+
+    validate_runs = [
+        step.get("run", "") for step in _job_steps(workflow, "validate-version")
+    ]
+    assert any("scripts/bump_version.py --check" in run for run in validate_runs)
+
     deploy_steps = _job_steps(workflow, "deploy")
     names = [step.get("name", "") for step in deploy_steps]
     assert "Rsync to VPS" in names
     assert "Install on VPS" in names
     install = next(step for step in deploy_steps if step.get("name") == "Install on VPS")
     assert "deploy/remote-install.sh" in install["run"]
+
     publish_steps = _job_steps(workflow, "publish-pypi")
     publish_runs = [step.get("run", "") for step in publish_steps]
     assert any("python -m build" in run for run in publish_runs)
-    assert any(step.get("uses", "").startswith("pypa/gh-action-pypi-publish") for step in publish_steps)
+    assert any(
+        step.get("uses", "").startswith("pypa/gh-action-pypi-publish")
+        for step in publish_steps
+    )
+
+    finalize_runs = [step.get("run", "") for step in _job_steps(workflow, "finalize-tag")]
+    assert any("git push origin" in run and "TAG" in run for run in finalize_runs)
