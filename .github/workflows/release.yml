@@ -43,8 +43,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          RESULT=$(gh run list --branch main --workflow ci.yml --limit 1 \
-            --json conclusion,status)
+          RESULT=$(gh run list --repo "${{ github.repository }}" --branch main \
+            --workflow ci.yml --limit 1 --json conclusion,status)
           STATUS=$(echo "$RESULT" | jq -r '.[0].status')
           CONCLUSION=$(echo "$RESULT" | jq -r '.[0].conclusion')
           if [ "$STATUS" != "completed" ] || [ "$CONCLUSION" != "success" ]; then
