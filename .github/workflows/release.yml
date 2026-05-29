@@ -183,6 +183,28 @@ jobs:
       - run: python -m build
       - uses: pypa/gh-action-pypi-publish@release/v1
 
+  publish-mcp-registry:
+    needs: publish-pypi
+    if: github.repository == 'negillett/alloc-context'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && github.ref || 'main' }}
+          fetch-depth: 0
+      - if: github.event_name == 'workflow_dispatch'
+        run: git pull origin main
+      - name: Install mcp-publisher
+        run: bash scripts/install-mcp-publisher.sh ./mcp-publisher
+      - name: Publish to MCP Registry
+        run: |
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish --dry-run --file server.json
+          ./mcp-publisher publish --file server.json
+
   deploy:
     needs: [validate-version, publish-pypi]
     if: >-
@@ -269,11 +291,12 @@ jobs:
           echo "Released v${{ needs.validate-version.outputs.version }} (${{ steps.checkout.outputs.sha }}) to configured host"
 
   finalize-tag:
-    needs: [prepare, validate-version, publish-pypi, deploy]
+    needs: [prepare, validate-version, publish-pypi, publish-mcp-registry, deploy]
     if: >-
       github.event_name == 'workflow_dispatch' &&
       github.repository == 'negillett/alloc-context' &&
-      needs.deploy.result == 'success'
+      needs.deploy.result == 'success' &&
+      needs.publish-mcp-registry.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

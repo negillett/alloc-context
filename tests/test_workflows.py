@@ -72,6 +72,7 @@ def test_release_workflow_unified_pipeline():
         "prepare",
         "validate-version",
         "publish-pypi",
+        "publish-mcp-registry",
         "deploy",
     ]
 
@@ -98,5 +99,21 @@ def test_release_workflow_unified_pipeline():
         for step in publish_steps
     )
 
-    finalize_runs = [step.get("run", "") for step in _job_steps(workflow, "finalize-tag")]
-    assert any("git push origin" in run and "TAG" in run for run in finalize_runs)
+    registry = workflow["jobs"]["publish-mcp-registry"]
+    assert registry["needs"] in (["publish-pypi"], "publish-pypi")
+    registry_runs = [
+        step.get("run", "") for step in _job_steps(workflow, "publish-mcp-registry")
+    ]
+    assert any("mcp-publisher publish" in run for run in registry_runs)
+
+    finalize = workflow["jobs"]["finalize-tag"]
+    assert "publish-mcp-registry" in finalize["needs"]
+
+
+def test_publish_mcp_registry_workflow_dispatch():
+    workflow = _load_workflow("publish-mcp-registry.yml")
+    on = _workflow_on(workflow)
+    assert "workflow_dispatch" in on
+    runs = [step.get("run", "") for step in _job_steps(workflow, "publish")]
+    assert any("install-mcp-publisher" in run for run in runs)
+    assert any("github-oidc" in run for run in runs)

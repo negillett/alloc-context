@@ -26,7 +26,15 @@ with x402 pay-per-call ($0.02 cached / $0.05 live). https://mcp.alloc-context.co
 | **Topics** | `mcp`, `x402`, `bitcoin`, `ethereum`, `model-context-protocol`, `agents`, `portfolio` |
 | **Website** | `https://mcp.alloc-context.com/llms.txt` |
 
-Update from a machine with repo admin access:
+The workspace PAT cannot set these via `gh repo edit` (needs **Administration**
+scope). Use the GitHub UI:
+
+1. Open [github.com/negillett/alloc-context](https://github.com/negillett/alloc-context)
+2. **Settings** is not required — click the **gear** next to About on the repo home
+3. Set **Description** and **Website** as in the table above
+4. Add **Topics** from the table (include `model-context-protocol`)
+
+Or, from a machine with a PAT that has **Administration** on the repo:
 
 ```bash
 gh repo edit negillett/alloc-context \
@@ -35,9 +43,6 @@ gh repo edit negillett/alloc-context \
   --add-topic model-context-protocol --add-topic agents --add-topic portfolio \
   --homepage "https://mcp.alloc-context.com/llms.txt"
 ```
-
-(AllocContext workspace: prefix with `scripts/with-alloc-gh.sh` if using the
-parent-folder PAT.)
 
 ## Official MCP Registry
 
@@ -52,11 +57,17 @@ This repo ships [`server.json`](../server.json) at the root with:
 
 ### Publish steps
 
-1. Install the publisher CLI (see [MCP publishing guide](https://modelcontextprotocol.io/registry/publishing)).
-2. From the repo root, authenticate as `negillett` (GitHub OAuth or OIDC in CI).
-3. Run the **release** workflow or bump via `scripts/bump_version.py` — see
-   [publishing.md](publishing.md).
-4. Run `mcp-publisher publish` (or the current equivalent from the registry docs).
+1. Ensure PyPI has the release — see [publishing.md](publishing.md).
+2. **Automated (recommended):** Actions → **publish-mcp-registry** → Run workflow.
+   Future **release** runs also publish after PyPI upload.
+3. **Local (optional):**
+   ```bash
+   bash scripts/install-mcp-publisher.sh ~/.local/bin/mcp-publisher
+   mcp-publisher login github
+   mcp-publisher publish --dry-run --file server.json
+   mcp-publisher publish --file server.json
+   ```
+4. See the [MCP publishing guide](https://modelcontextprotocol.io/registry/publishing).
 
 Verify after publish:
 
