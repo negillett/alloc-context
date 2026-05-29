@@ -31,6 +31,7 @@ One-time setup:
 | **PyPI trusted publisher** | Owner `negillett`, repo `alloc-context`, workflow `release.yml`, environment *(blank)* |
 | **VPS secrets** | `VPS_SSH_KEY`, `VPS_HOST` — see [self-hosting.md](self-hosting.md) |
 | **Workflow permissions** | Repo Settings → Actions → General → **Read and write** for `GITHUB_TOKEN` |
+| **Branch protection** | Release bumps push to `release/vX.Y.Z`, then open a PR to `main` (no bypass needed) |
 
 Version files updated by the bump script:
 
@@ -50,9 +51,20 @@ Version files updated by the bump script:
 | **Exact version** | `exact_version` = e.g. `0.2.0`; `tag_only` = false |
 | **First release / no bump** | `tag_only` = true (releases current version, e.g. `0.1.0`) |
 
-4. Watch the run: test → bump commit (if any) → PyPI → VPS smoke/x402 → tag.
+4. Watch the run: test → `release/vX.Y.Z` branch (if bumping) → PyPI → MCP Registry
+   + VPS → tag → PR to sync `main`.
 
 Concurrency: only one **release** run at a time per repository.
+
+## Branch protection on `main`
+
+If `main` requires pull requests, the workflow **does not push to `main`**. It
+pushes `release/vX.Y.Z`, publishes from that branch, tags it, then opens a PR to
+merge the version bump into `main` (auto-merge when allowed).
+
+Optional bypass (not required): **Settings** → **Rules** → `main` ruleset →
+**Bypass list** → add the **release** workflow or a machine-user PAT with
+`contents: write`.
 
 ## First release (`v0.1.0`)
 

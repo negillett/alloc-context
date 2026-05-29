@@ -29,6 +29,7 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
   actions: read
 
 jobs:
@@ -77,6 +78,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      ref: ${{ steps.release_ref.outputs.ref }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -114,22 +116,29 @@ jobs:
           fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Commit version bump
-        if: inputs.tag_only != true
+      - name: Publish version bump branch
+        id: release_ref
         env:
+          TAG_ONLY: ${{ inputs.tag_only }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
+          if [ "$TAG_ONLY" = "true" ]; then
+            echo "ref=main" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          BRANCH="release/v${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
           git add pyproject.toml server.json alloccontext/__init__.py
           if git diff --staged --quiet; then
             echo "No version changes to commit"
             exit 1
           fi
           git commit -m "Bump version to ${VERSION}."
-          git pull --rebase origin main
-          git push origin main
+          git push -u origin "${BRANCH}"
+          echo "ref=${BRANCH}" >> "$GITHUB_OUTPUT"
 
   validate-version:
     needs: [test, prepare]
@@ -140,14 +149,15 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.resolve.outputs.version }}
+      ref: ${{ steps.resolve.outputs.ref }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'push' && github.ref || 'main' }}
+          ref: ${{ github.event_name == 'push' && github.ref || needs.prepare.outputs.ref }}
           fetch-depth: 0
-      - name: Sync main
+      - name: Sync release ref
         if: github.event_name == 'workflow_dispatch'
-        run: git pull origin main
+        run: git pull origin "${{ needs.prepare.outputs.ref }}"
       - name: Verify release version
         id: resolve
         env:
@@ -156,11 +166,14 @@ jobs:
           set -euo pipefail
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             VERSION="$PREPARE_VERSION"
+            REF="${{ needs.prepare.outputs.ref }}"
           else
             VERSION="${GITHUB_REF_NAME#v}"
+            REF="${{ github.ref }}"
           fi
           python3 scripts/bump_version.py --check "$VERSION"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "ref=${REF}" >> "$GITHUB_OUTPUT"
 
   publish-pypi:
     needs: validate-version
@@ -172,10 +185,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'push' && github.ref || 'main' }}
+          ref: ${{ needs.validate-version.outputs.ref }}
           fetch-depth: 0
       - if: github.event_name == 'workflow_dispatch'
-        run: git pull origin main
+        run: git pull origin "${{ needs.validate-version.outputs.ref }}"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -184,7 +197,7 @@ jobs:
       - uses: pypa/gh-action-pypi-publish@release/v1
 
   publish-mcp-registry:
-    needs: publish-pypi
+    needs: [publish-pypi, validate-version]
     if: github.repository == 'negillett/alloc-context'
     runs-on: ubuntu-latest
     permissions:
@@ -193,10 +206,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'push' && github.ref || 'main' }}
+          ref: ${{ needs.validate-version.outputs.ref }}
           fetch-depth: 0
       - if: github.event_name == 'workflow_dispatch'
-        run: git pull origin main
+        run: git pull origin "${{ needs.validate-version.outputs.ref }}"
       - name: Install mcp-publisher
         run: bash scripts/install-mcp-publisher.sh ./mcp-publisher
       - name: Publish to MCP Registry
@@ -217,10 +230,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'push' && github.ref || 'main' }}
+          ref: ${{ needs.validate-version.outputs.ref }}
           fetch-depth: 0
       - if: github.event_name == 'workflow_dispatch'
-        run: git pull origin main
+        run: git pull origin "${{ needs.validate-version.outputs.ref }}"
 
       - name: Record release SHA
         id: checkout
@@ -301,14 +314,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ needs.prepare.outputs.ref }}
           fetch-depth: 0
       - name: Tag successful release
         env:
           VERSION: ${{ needs.validate-version.outputs.version }}
         run: |
           set -euo pipefail
-          git pull origin main
+          git pull origin "${{ needs.prepare.outputs.ref }}"
           TAG="v${VERSION}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -318,3 +331,33 @@ jobs:
           fi
           git tag -a "$TAG" -m "Release ${VERSION}"
           git push origin "$TAG"
+
+  sync-main:
+    needs: [prepare, finalize-tag]
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'negillett/alloc-context' &&
+      inputs.tag_only != true &&
+      needs.finalize-tag.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open version bump PR to main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          set -euo pipefail
+          BRANCH="release/v${VERSION}"
+          if gh pr list --head "${BRANCH}" --base main --json number --jq 'length' | grep -qv '^0$'; then
+            echo "PR already open for ${BRANCH}"
+          else
+            gh pr create --base main --head "${BRANCH}" \
+              --title "Bump version to ${VERSION}" \
+              --body "Automated release version sync from the **release** workflow."
+          fi
+          PR=$(gh pr list --head "${BRANCH}" --base main --json number --jq '.[0].number')
+          if gh pr merge "${PR}" --squash --delete-branch --auto; then
+            echo "PR #${PR} merged to main"
+          else
+            echo "PR #${PR} opened; merge manually if branch protection requires review"
+          fi

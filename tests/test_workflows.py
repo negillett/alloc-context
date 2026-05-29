@@ -78,6 +78,7 @@ def test_release_workflow_unified_pipeline():
 
     prepare_runs = [step.get("run", "") for step in _job_steps(workflow, "prepare")]
     assert any("scripts/bump_version.py" in run for run in prepare_runs)
+    assert any("release/v" in run and "git push" in run for run in prepare_runs)
 
     validate_runs = [
         step.get("run", "") for step in _job_steps(workflow, "validate-version")
@@ -100,7 +101,10 @@ def test_release_workflow_unified_pipeline():
     )
 
     registry = workflow["jobs"]["publish-mcp-registry"]
-    assert registry["needs"] in (["publish-pypi"], "publish-pypi")
+    assert registry["needs"] in (
+        ["publish-pypi", "validate-version"],
+        ["validate-version", "publish-pypi"],
+    )
     registry_runs = [
         step.get("run", "") for step in _job_steps(workflow, "publish-mcp-registry")
     ]
@@ -108,6 +112,8 @@ def test_release_workflow_unified_pipeline():
 
     finalize = workflow["jobs"]["finalize-tag"]
     assert "publish-mcp-registry" in finalize["needs"]
+
+    assert "sync-main" in workflow["jobs"]
 
 
 def test_publish_mcp_registry_workflow_dispatch():
